@@ -61,6 +61,15 @@ function parseRule(lecture) {
   return JSON.parse(readFileSync(rulePath, 'utf8'));
 }
 
+function parseLectureNumber(rawLecture, label) {
+  const number = Number(rawLecture);
+  if (!Number.isInteger(number) || number < 1 || number > 20) {
+    fail('lab 번호는 01부터 20 사이여야 합니다.');
+    finish(label);
+  }
+  return number;
+}
+
 function fileFromWorktree(relativePath) {
   const absolutePath = path.join(repoRoot, relativePath);
   if (!existsSync(absolutePath)) {
@@ -398,12 +407,160 @@ function runAppChecks() {
   }
 }
 
-function checkLecture(rawLecture, branch) {
-  const number = Number(rawLecture);
-  if (!Number.isInteger(number) || number < 1 || number > 20) {
-    fail('lab 번호는 01부터 20 사이여야 합니다.');
-    finish('lab self-check');
+function auditLocation(relativePath) {
+  if (relativePath === 'AGENTS.md') {
+    return 'repo 진입점';
   }
+  if (relativePath.startsWith('docs/')) {
+    return 'docs/ 장기 기준';
+  }
+  if (relativePath.startsWith('notes/')) {
+    return 'notes/ 작업 기록';
+  }
+  if (relativePath.startsWith('.github/')) {
+    return '.github/ 플랫폼 설정';
+  }
+  if (
+    relativePath.startsWith('labs/fixtures/')
+    || /^labs\/lecture\d{2}\/inputs\//.test(relativePath)
+  ) {
+    return 'labs/ 실습 입력';
+  }
+  return null;
+}
+
+function normalizeReference(sourcePath, rawReference) {
+  const withoutDecoration = rawReference
+    .trim()
+    .replace(/^<|>$/g, '')
+    .split(/[?#]/, 1)[0]
+    .replace(/[.,;:]+$/, '');
+
+  if (
+    withoutDecoration === ''
+    || /^(?:https?:|mailto:|#)/.test(withoutDecoration)
+    || withoutDecoration.includes('*')
+  ) {
+    return null;
+  }
+
+  const fromRepoRoot = /^(?:AGENTS\.md|docs\/|notes\/|\.github\/|labs\/|src\/|tests\/)/
+    .test(withoutDecoration);
+  const absoluteTarget = fromRepoRoot
+    ? path.resolve(repoRoot, withoutDecoration)
+    : path.resolve(repoRoot, path.dirname(sourcePath), withoutDecoration);
+  const relativeTarget = path.relative(repoRoot, absoluteTarget).split(path.sep).join('/');
+
+  if (relativeTarget.startsWith('../') || path.isAbsolute(relativeTarget)) {
+    return null;
+  }
+  return relativeTarget;
+}
+
+function findDocumentReferences(sourcePath, markdown) {
+  const references = new Set();
+  const markdownLinks = [...markdown.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+[^)]*)?\)/g)];
+  for (const match of markdownLinks) {
+    const target = normalizeReference(sourcePath, match[1]);
+    if (target) {
+      references.add(target);
+    }
+  }
+
+  const filePathPattern = /(?:^|[\s`'"(@])((?:\.\.\/|\.\/)*(?:AGENTS\.md|(?:docs|notes|\.github|labs|src|tests)\/[A-Za-z0-9가-힣_.\/-]+\.(?:md|json|mjs|ts)))(?=$|[\s`'"),:;])/gm;
+  for (const match of markdown.matchAll(filePathPattern)) {
+    const target = normalizeReference(sourcePath, match[1]);
+    if (target) {
+      references.add(target);
+    }
+  }
+
+  return references;
+}
+
+function auditDocuments(rawLecture) {
+  const number = parseLectureNumber(rawLecture, '문서 관계 audit');
+  const documentPaths = new Set();
+
+  // --audit-docs NN은 NN 실습에 들어가기 전까지 완성된 산출물을 점검한다.
+  // 예를 들어 Lab 11 E1은 Lab 01~10의 required 문서만 사용한다.
+  for (let current = 1; current < number; current += 1) {
+    const rule = parseRule(String(current).padStart(2, '0'));
+    for (const entry of rule.required) {
+      if (entry.path === 'AGENTS.md' || entry.path.endsWith('.md')) {
+        documentPaths.add(entry.path);
+      }
+    }
+  }
+
+  const conventionsPath = 'labs/CONVENTIONS.md';
+  if (!existsSync(path.join(repoRoot, conventionsPath))) {
+    fail(`${conventionsPath} 위치 규약 파일이 없습니다.`);
+  }
+
+  const contents = new Map();
+  for (const relativePath of [...documentPaths].sort()) {
+    const content = fileFromWorktree(relativePath);
+    if (content === null) {
+      fail(`${relativePath} 필수 문서가 없습니다.`);
+      continue;
+    }
+
+    const location = auditLocation(relativePath);
+    if (location === null) {
+      fail(`${relativePath}가 labs/CONVENTIONS.md의 문서 위치 규약에 속하지 않습니다.`);
+      continue;
+    }
+
+    pass(`${relativePath} 파일이 있고 ${location} 위치에 있습니다. 내용 검증은 하지 않았습니다.`);
+    contents.set(relativePath, content);
+  }
+
+  const relationships = new Set();
+  const connectedDocuments = new Set();
+  const brokenReferences = new Set();
+
+  for (const [sourcePath, markdown] of contents) {
+    for (const targetPath of findDocumentReferences(sourcePath, markdown)) {
+      if (targetPath === sourcePath) {
+        continue;
+      }
+
+      if (!existsSync(path.join(repoRoot, targetPath))) {
+        brokenReferences.add(`${sourcePath}\u0000${targetPath}`);
+        continue;
+      }
+
+      if (documentPaths.has(targetPath)) {
+        relationships.add(`${sourcePath}\u0000${targetPath}`);
+        connectedDocuments.add(sourcePath);
+        connectedDocuments.add(targetPath);
+      }
+    }
+  }
+
+  for (const relationship of [...relationships].sort()) {
+    const [sourcePath, targetPath] = relationship.split('\u0000');
+    console.log(`REL ${sourcePath} --references--> ${targetPath}`);
+  }
+
+  for (const brokenReference of [...brokenReferences].sort()) {
+    const [sourcePath, targetPath] = brokenReference.split('\u0000');
+    fail(`${sourcePath}가 참조한 ${targetPath} 파일이 없습니다.`);
+  }
+
+  for (const relativePath of [...contents.keys()].sort()) {
+    if (!connectedDocuments.has(relativePath)) {
+      warn(`${relativePath}는 다른 기준 문서와의 연결이 보이지 않습니다. 실패가 아니며 사람이 확인할 후보입니다.`);
+    }
+  }
+
+  console.log('PASS는 존재와 위치만, REL은 원문의 명시적 참조만 뜻합니다. 정책 의미·정본·중복·충돌은 판정하지 않습니다.');
+  finish('문서 관계 audit');
+}
+
+function checkLecture(rawLecture, branch) {
+  const number = parseLectureNumber(rawLecture, 'lab self-check');
 
   const lecture = String(number).padStart(2, '0');
   for (let current = 1; current <= number; current += 1) {
@@ -450,7 +607,7 @@ function finish(label) {
 
 const args = process.argv.slice(2);
 if (args.length === 0) {
-  console.log('사용법: node labs/tools/check.mjs env | --lint-labs | <01-20> [--branch <name>]');
+  console.log('사용법: node labs/tools/check.mjs env | --lint-labs | --audit-docs <01-20> | <01-20> [--branch <name>]');
   process.exit(2);
 }
 
@@ -458,6 +615,8 @@ if (args[0] === 'env') {
   runEnvironmentCheck();
 } else if (args[0] === '--lint-labs') {
   lintLabs();
+} else if (args[0] === '--audit-docs') {
+  auditDocuments(args[1]);
 } else {
   const branchIndex = args.indexOf('--branch');
   const branch = branchIndex >= 0 ? args[branchIndex + 1] : undefined;
