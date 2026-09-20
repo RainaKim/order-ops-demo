@@ -15,7 +15,7 @@ Chapter 2에서 준비한 Issue·정책·plan·self-review를 처음 실제 코�
 - root `AGENTS.md`, 위치 규약, 세 정책, plan template과 self-review prompt가 있어야 합니다.
 - 이번 입력은 `labs/lecture12/inputs/l12-issue.md`입니다. E2 승인 전에는 `src/`와 `tests/`를 변경하지 않습니다.
 
-시작할 때 `git branch --show-current`, `git rev-parse --short HEAD`, `git status --short --untracked-files=all`을 기록하고, `git diff --stat -- src tests`와 `git diff --cached --stat -- src tests`가 비어 있는지 확인합니다.
+시작할 때 현재 브랜치·HEAD·작업 트리를 확인하고, 기존 변경과 이번 Lab의 변경을 구분합니다.
 
 이번 구현에 필요한 미결 상태·응답·실패 정보가 있으면 E2 승인 전에 사람이 결정합니다. 결정되지 않았다면 구현 완료로 표시하지 않습니다.
 
@@ -136,15 +136,9 @@ Risks에는 영향·감지 방법, Steps에는 예상 수정 범위, Out of Scop
 ```
 
 - Plan mode 종료 후 확인한 나머지 다섯 영역을 같은 plan에 저장합니다. 미결과 구현 승인 대기를 유지하며 `src/`·`tests/`는 변경하지 않습니다.
-- 저장된 전체 plan과 아래 무변경 증거를 확인한 뒤 구현 승인 여부를 판단합니다.
+- 저장된 전체 plan과 승인 전 앱 코드·테스트 무변경 상태를 확인한 뒤 구현 승인 여부를 판단합니다.
 
-```bash
-git diff --stat -- src tests
-git diff --cached --stat -- src tests
-git status --short --untracked-files=all -- src tests
-```
-
-코드에 필요한 미결이 남으면 승인하지 않습니다. 실제 승인 후 승인한 Steps·Files to Change 범위, 승인 근거와 위 세 명령의 무변경 결과를 plan의 Approval Gate에 기록합니다. 구현은 E3에서 시작하며, 반복 한도도 사람이 승인한 값만 사용합니다.
+코드에 필요한 미결이 남으면 승인하지 않습니다. 실제 승인 후 승인한 Steps·Files to Change 범위, 승인 근거와 무변경 확인 결과를 plan의 Approval Gate에 기록합니다. 구현은 E3에서 시작하며, 반복 한도도 사람이 승인한 값만 사용합니다.
 
 #### 검증
 
@@ -152,7 +146,7 @@ git status --short --untracked-files=all -- src tests
 - [ ] 각 Step에 직접 연결된 테스트·명령·기대 증거와 Risks의 영향·감지 방법이 있는가?
 - [ ] Out of Scope에 관리자 표시 교정·외부 결제사·DB와 `deriveDisplayStatus()` 미변경·Lab 15의 예외 fallback 제거 보류가 있는가?
 - [ ] 결제 직전 부족의 미결 동작이 정지 조건에 있고, 관련 결정 없이 구현을 승인하지 않았는가?
-- [ ] 승인한 Steps·파일 목록·예상 수정 범위·사람 승인 근거와 승인 전 diff·staged diff·status 무변경 증거가 같은 자리에 있는가?
+- [ ] 승인한 Steps·파일 목록·예상 수정 범위·사람 승인 근거와 승인 전 앱 코드·테스트 무변경 증거가 같은 자리에 있는가?
 
 ### E3. 구현하고 계획과 diff 대조하기
 
@@ -181,20 +175,13 @@ git status --short --untracked-files=all -- src tests
 ```text
 @notes/plans/l12-inventory-after-payment.md의 사람 승인 기록을 확인하고 승인된 범위만 구현해줘. 각 Step의 상태 변화와 검증을 따라 필요한 테스트를 추가·수정해라.
 deriveDisplayStatus()와 관리자 표시 계산, payments·admin의 예상 밖 예외 fallback은 수정하지 마라. 정상적으로 판정된 결제 실패 분기 개선과 예외 fallback 제거를 구분해라.
-각 Step의 구현·검증 뒤 git diff --stat, status와 실제 diff를 아래 명령으로 확인해라. 파일 수나 diff 규모가 예상 밖으로 커지면 다음 Step 전에 멈추고 계획 수정·작업 분리·불필요한 변경 되돌리기를 사람에게 요청해라.
+각 Step의 구현·검증 뒤 전체 작업 diff를 승인 계획과 대조해라. 파일 수나 diff 규모가 예상 밖으로 커지면 다음 Step 전에 멈추고 계획 수정·작업 분리·불필요한 변경 되돌리기를 사람에게 요청해라.
 미결 정책·계획 밖 변경이 필요하면 멈추고 사람에게 확인해라. 실행한 검증과 미실행 검증, 실제 결과를 구분해 보고하고 아직 stage나 commit하지 마라.
-```
-
-```bash
-git diff --stat -- src tests
-git status --short --untracked-files=all -- src tests
-git diff -- src tests
-git diff -- src/admin.ts
 ```
 
 #### 수행 순서
 
-1. 각 Step 뒤 Git 명령과 review pane의 **Unstaged 전체 diff**로 계획과 실제 변경을 대조합니다.
+1. 각 Step 뒤 review pane의 **Unstaged 전체 diff**로 계획과 실제 변경을 대조합니다.
 2. 예상 밖 파일·동작·규모 확대가 있으면 다음 Step 전에 멈춥니다.
 3. `docs/prompts/self-review.md`로 Issue·승인 plan·전체 `src`·`tests` diff·실제 검증 결과를 읽기 전용으로 검토합니다.
 4. 결과를 `notes/diff-review-l12.md`에 기록합니다.
@@ -267,8 +254,6 @@ git commit -m "fix: apply inventory after successful payment"
 
 ```bash
 node labs/tools/check.mjs 12
-git diff --stat -- src tests
-git status --short
 ```
 
 검사기는 누적 필수 산출물을 확인하며, Lab 12의 `runAppChecks: true`로 test·lint·typecheck도 실행합니다. 이미 E4에서 실행했어도 최종 상태를 재검사합니다. 형식 PASS가 계획 승인이나 정책 정합을 보증하지는 않습니다. 커밋 뒤 비어 있는 diff는 완료 증거가 아니므로 마지막 커밋과 diff review도 확인합니다.
