@@ -222,16 +222,10 @@ deriveDisplayStatus()와 관리자 표시 계산, payments·admin의 예상 밖 
 
 #### 실행
 
-```bash
-npm test
-npm run lint
-npm run typecheck
-```
-
 ```text
 @notes/diff-review-l12.md의 `## Scope guard 판단`과 검증 결과를 완성해줘. 계획 밖 변경·예상 밖 파일 수와 diff 확대를 모두 적고 완료 기준 필요성·제외 범위·정책 근거·검토 가능한 규모로 계획 재승인·작업 분리·구현 되돌리기 후보를 판단해라.
 사람 승인 없이 계획을 사후 확정하거나 앱 코드·정책을 수정하지 마라.
-npm test, npm run lint, npm run typecheck의 실행 명령·실제 결과·기대 증거와 미실행 이유를 구분하고, 남은 실패·보류와 deriveDisplayStatus()의 관찰 위험도 기록해라.
+npm test, npm run lint, npm run typecheck를 직접 실행하고 각 명령의 실제 결과·기대 증거를 구분해 기록해라. 실행하지 못한 검증은 이유를 남기고, 남은 실패·보류와 deriveDisplayStatus()의 관찰 위험도 기록해라.
 ```
 
 사람이 Scope guard 조치를 승인한 경우에만 필요한 수정·재승인·검증을 수행합니다. 필수 검증이나 승인 문제가 남으면 완료 커밋을 보류합니다. 모두 해결한 뒤 승인된 코드·테스트와 plan·diff review만 stage하고, staged diff에 다른 변경이 없는지 확인합니다.
