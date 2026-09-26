@@ -6,9 +6,13 @@
 
 ## Before Editing
 
-- `labs/CONVENTIONS.md`를 읽어 작업 산출물의 위치 규칙을 확인한다.
-- `README.md`와 `src/server.ts`를 확인한 뒤, 요청과 연결된 기능 모듈·`src/store.ts`·관련 테스트를 따라 현재 동작과 검증 범위를 확인한다.
-- 관련 자료와 현재 동작을 확인한 뒤, 코드 수정 전에 변경 범위·검증·미결정 사항을 담은 계획을 작성한다.
+### New Session Reading Order
+
+1. 이 문서의 Project Overview와 Rules를 읽어 저장소 성격과 공통 제약을 확인한다.
+2. `labs/CONVENTIONS.md`에서 산출물의 위치 규칙을 확인한다.
+3. `README.md`와 `src/server.ts`를 읽고, 요청과 연결된 기능 모듈·`src/store.ts`·관련 테스트를 따라 현재 동작과 검증 범위를 확인한다.
+4. 아래 Policy Routing에서 요청 유형에 해당하는 정책을 읽는다.
+5. 관련 자료와 현재 동작을 확인한 뒤, 앱 코드를 수정하는 작업이면 `docs/templates/implementation-plan.md`를 사용해 계획을 작성하고 승인 여부를 확인한다.
 
 ### Policy Routing
 
@@ -21,13 +25,29 @@
 
 필요한 정책 문서나 적용 기준이 없거나, 관련 정책끼리 같은 사건에 다른 상태·결제 결과·재고 결과·관리자 표시를 요구하거나, 요청한 동작이 정책에서 보류되어 있으면 편집 전에 멈춘다. 누락·충돌·보류 지점과 필요한 결정을 밝히고 사람의 확인을 받은 뒤에만 편집한다.
 
+### Implementation Plan
+
+앱 코드 변경 계획은 [`docs/templates/implementation-plan.md`](docs/templates/implementation-plan.md)를 사용한다. 요청과 확정 결정에 연결된 범위·검증·중단 조건을 기록하고, 템플릿의 Approval Gate가 충족되기 전에는 `src/`와 `tests/`를 수정하지 않는다.
+
 ## Commands
 
-- `npm run dev` — 개발 서버를 실행한다.
-- `npm start` — 애플리케이션을 실행한다.
-- `npm test` — 테스트를 실행한다.
-- `npm run lint` — 정적 검사를 실행한다.
-- `npm run typecheck` — 타입 검사를 실행한다.
+### Validation Entry Point
+
+계획의 `Tests to Add or Update`에 적은 검증부터 실행한 뒤, 저장소 검증 명령을 다음 순서로 실행한다.
+
+1. `npm test` — 테스트를 실행한다.
+2. `npm run lint` — 정적 검사를 실행한다.
+3. `npm run typecheck` — 타입 검사를 실행한다.
+
+개발 서버 확인이 필요하면 `npm run dev`, 애플리케이션 실행이 필요하면 `npm start`를 사용한다. 검증 결과 보고는 아래 Before Final Response를 따른다.
+
+## Reusable Prompts
+
+이 prompt들은 자동 호출 규칙이 아니며, 사람이 현재 작업의 근거와 필요한 결과를 보고 사용할 prompt를 선택한다.
+
+- [`docs/prompts/test-generation.md`](docs/prompts/test-generation.md) — 현재 코드·정책·기존 테스트를 대조해 빠진 케이스와 의미 있는 assertion을 찾아야 할 때 사용한다.
+- [`docs/prompts/pr-description.md`](docs/prompts/pr-description.md) — diff와 실행·미실행 검증 결과를 근거로 PR 설명을 작성할 때 사용한다.
+- [`docs/prompts/self-review.md`](docs/prompts/self-review.md) — Issue·implementation plan·diff·테스트 결과를 대조해 범위 이탈과 누락된 검증을 수정 없이 검토할 때 사용한다.
 
 ## Rules
 

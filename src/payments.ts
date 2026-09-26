@@ -3,7 +3,9 @@ import type { Request, Response } from 'express';
 import {
   orders,
   paymentAttempts,
+  products,
   type Order,
+  type OrderItem,
   type PaymentAttempt,
 } from './store.js';
 
@@ -49,7 +51,38 @@ function recordAttempt(order: Order, ok: boolean): void {
   paymentAttempts.push(createAttempt(order, ok));
 }
 
+function aggregateQuantities(items: OrderItem[]): Map<string, number> {
+  const quantities = new Map<string, number>();
+
+  for (const item of items) {
+    quantities.set(item.productId, (quantities.get(item.productId) ?? 0) + item.quantity);
+  }
+
+  return quantities;
+}
+
+function hasSufficientStock(order: Order): boolean {
+  for (const [productId, quantity] of aggregateQuantities(order.items)) {
+    const product = products.get(productId);
+    if (!product || product.stock < quantity) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function decrementStock(order: Order): void {
+  for (const [productId, quantity] of aggregateQuantities(order.items)) {
+    const product = products.get(productId);
+    if (product) {
+      product.stock -= quantity;
+    }
+  }
+}
+
 function completePayment(order: Order): Order {
+  decrementStock(order);
   order.status = 'paid';
   recordAttempt(order, true);
   return order;
@@ -85,8 +118,13 @@ paymentsRouter.post(
 
       if (card.shouldFail) {
         recordAttempt(order, false);
-        orders.delete(orderId);
-        res.json({ ok: false });
+        order.status = 'payment_failed';
+        res.status(402).json({ ok: false });
+        return;
+      }
+
+      if (!hasSufficientStock(order)) {
+        res.status(409).end();
         return;
       }
 

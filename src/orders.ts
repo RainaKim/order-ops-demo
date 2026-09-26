@@ -40,6 +40,27 @@ function calculateTotal(items: OrderItem[]): number | null {
   return totalKrw;
 }
 
+function aggregateQuantities(items: OrderItem[]): Map<string, number> {
+  const quantities = new Map<string, number>();
+
+  for (const item of items) {
+    quantities.set(item.productId, (quantities.get(item.productId) ?? 0) + item.quantity);
+  }
+
+  return quantities;
+}
+
+function hasSufficientStock(items: OrderItem[]): boolean {
+  for (const [productId, quantity] of aggregateQuantities(items)) {
+    const product = products.get(productId);
+    if (!product || product.stock < quantity) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export const ordersRouter = Router();
 
 ordersRouter.post('/', (req: Request<unknown, unknown, CreateOrderBody>, res: Response) => {
@@ -56,11 +77,9 @@ ordersRouter.post('/', (req: Request<unknown, unknown, CreateOrderBody>, res: Re
     return;
   }
 
-  for (const item of items) {
-    const product = products.get(item.productId);
-    if (product) {
-      product.stock -= item.quantity;
-    }
+  if (!hasSufficientStock(items)) {
+    res.status(409).json({ message: 'Insufficient stock' });
+    return;
   }
 
   const order: Order = {

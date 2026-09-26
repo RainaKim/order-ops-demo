@@ -1,10 +1,9 @@
 {
   "lecture": "12",
   "required": [
-    { "path": "notes/diff-review-l12.md" }
-  ],
-  "optional": [
+    { "path": "notes/diff-review-l12.md" },
     { "path": "notes/plans/l12-inventory-after-payment.md", "fixedHeadings": ["## Goal", "## Files to Change", "## Files to Read First", "## Steps", "## Tests to Add or Update", "## Risks", "## Out of Scope", "## Stop Conditions"] }
   ],
+  "optional": [],
   "runAppChecks": true
 }
