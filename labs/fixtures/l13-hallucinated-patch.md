@@ -1,6 +1,6 @@
-# Lecture 13 backup patch
+# Lecture 13 controlled fault patch
 
-모델이 존재하지 않는 API를 만들지 않았을 때 실패 검증을 재현하기 위한 입력입니다. 이 변경은 작업 트리에서만 시험하고 커밋하지 않습니다.
+라이브 모델이 존재하지 않는 API를 만들지 않았을 때 검출·복구 절차를 계속하기 위한 **통제된 오류 입력**입니다. 이 패치를 적용했다고 라이브 환각이 발생한 것으로 기록하지 않습니다. 변경은 작업 트리에서만 시험하고 커밋하지 않습니다.
 
 아래 diff 블록은 현재 `completePayment(order)` 호출 문맥을 찾아 `src/payments.ts`를 직접 편집해 적용하며, Markdown 파일 자체를 `git apply`에 전달하지 않습니다.
 
