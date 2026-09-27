@@ -18,12 +18,11 @@ Lab 04~11에서 만든 `AGENTS.md`와 기준 문서는 변경 전에 근거와 �
 
 ```bash
 git status --short --branch
-git log --oneline -3
 git log --oneline -3 -- src tests
 git diff --stat -- src tests
 ```
 
-현재 branch, 최근 전체 커밋과 `src`·`tests`의 기준 커밋을 구분하고 앱 diff가 없는지 확인합니다. 이전 실습의 임시 override가 남아 있다면 제거한 뒤 시작합니다.
+현재 branch와 `src`·`tests`의 최근 기준 커밋을 확인하고 앱 diff가 없는지 봅니다. 이전 실습의 임시 override가 남아 있다면 제거한 뒤 시작합니다.
 
 ## 2. 실습 목표와 산출물
 
