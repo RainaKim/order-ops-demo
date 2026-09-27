@@ -8,13 +8,14 @@
 - `notes/error-log-l13.md`, `docs/checklists/hallucination-guard.md`를 남깁니다.
 - 예상 소요 시간은 40분입니다.
 
-Lab 04~11에서 만든 `AGENTS.md`와 기준 문서는 변경 전에 근거와 승인 범위를 확인하는 **예방 계층**입니다. 안전한 모델은 잘못된 패치를 만들기 전에 멈출 수 있으므로 라이브 환각은 수업 입력으로 재현성이 낮습니다. 이번 Lab은 예방 계층을 끄거나 모델이 틀리기를 기다리지 않습니다. 출처가 명확한 fixture를 **통제된 fault injection**으로 적용하고, typecheck·test라는 **검출 계층**과 최소 복구 절차를 반복 가능하게 확인합니다.
+Lab 04~11에서 만든 root `AGENTS.md`와 기준 문서는 변경 전에 근거와 승인 범위를 확인하는 **예방 계층**입니다. 안전한 모델은 승인된 계획 없이 앱 파일을 바꾸지 않으므로 라이브 환각은 수업 입력으로 재현성이 낮습니다. 이번 Lab은 원본 지침을 수정하지 않고, fixture 적용 단계에만 제한적 `AGENTS.override.md`를 사용합니다. 출처가 명확한 실패 패치를 **통제된 fault injection**으로 적용한 뒤 override를 제거하고, 정상 지침 아래에서 typecheck·test와 최소 복구 절차를 확인합니다.
 
 ## 1. 시작 전 상태 확인
 
 - Lab 12 코드·테스트·plan·diff review와 검증 기록이 커밋돼 있어야 합니다.
 - 시작 작업 트리가 깨끗해야 하며 E1 실패 패치는 커밋하지 않습니다. root `AGENTS.md`도 수정하지 않습니다.
 - `labs/fixtures/l13-hallucinated-patch.md`는 모델 성능을 평가하는 답안이 아니라 검출·복구를 연습하는 통제된 오류 입력입니다.
+- 이전 실행의 `AGENTS.override.md`가 남아 있으면 제거하고 시작합니다.
 
 ```bash
 git status --short --branch
@@ -28,15 +29,15 @@ git diff --stat -- src tests
 
 | 단계 | 핵심 개념 | 핵심 작업 | 결과 | 배분 |
 | --- | --- | --- | --- | ---: |
-| E1 | 통제된 fault injection | fixture의 존재 주장을 확인하고 실패 패치를 그대로 적용 | 커밋하지 않은 실패 패치 | 10분 |
+| E1 | 통제된 fault injection | 제한적 override에서 fixture를 그대로 적용하고 원래 지침으로 복귀 | 커밋하지 않은 실패 패치 | 10분 |
 | E2 | 검출 계층의 차이 | typecheck와 test 결과를 원문으로 기록 | `notes/error-log-l13.md` | 10분 |
 | E3 | 최소 복구 | E1 패치만 제거하고 전후 검증 연결 | Lab 12와 같은 `src`·`tests` | 8분 |
 | E4 | 실패를 재사용 기준으로 전환 | `AGENTS.md`와 겹치지 않는 guard 작성·커밋 | `docs/checklists/hallucination-guard.md` | 12분 |
 
 ```mermaid
 flowchart LR
-  A["AGENTS.md・기준 문서<br/>예방 계층"] --> B["fixture<br/>통제된 fault injection"]
-  B --> C["출처가 분명한 실패 diff"] --> D["E2 typecheck・test<br/>검출 계층"]
+  A["root AGENTS.md<br/>예방 계층"] --> B["제한적 override<br/>fixture 적용만 허용"]
+  B --> C["override 제거<br/>출처가 분명한 실패 diff"] --> D["E2 typecheck・test<br/>검출 계층"]
   D --> E["E3 실패 패치만 최소 복구"] --> F["E4 다음 작업의 확인 절차로 기록"]
 ```
 
@@ -48,6 +49,7 @@ flowchart LR
 
 - 예방 계층과 검출 계층은 각각 어느 시점의 오류를 다루나요?
 - 왜 라이브 모델의 실수 대신 출처가 분명한 fixture를 사용하나요?
+- 왜 원본 `AGENTS.md`를 고치지 않고 제한적 override를 사용하나요?
 - 패치를 적용하기 전에 어떤 존재 주장을 원문 코드에서 확인해야 하나요?
 
 #### 판단 기준
@@ -57,6 +59,7 @@ flowchart LR
 | 계층 | 이번 Lab의 역할 | 정상 상태 |
 | --- | --- | --- |
 | root `AGENTS.md` | 읽기 순서·정책·계획 승인을 먼저 확인하는 예방 계층 | 보존 |
+| 임시 `AGENTS.override.md` | fixture 한 건의 적용만 허용 | E2 전에 삭제 |
 | fixture | 이미 들어온 잘못된 코드를 반복 가능하게 재현하는 통제 입력 | E1에서만 적용 |
 | typecheck·test | 작업 트리에 들어온 오류를 발견하는 검출 계층 | E2에서 실행 |
 
@@ -73,22 +76,23 @@ fixture에 적힌 이름이 그럴듯해도 존재 근거가 되지 않습니다
 
 1. root `AGENTS.md`에서 변경 전 확인이 잘못된 패치를 어떻게 예방하는지 확인합니다. 원본 파일은 수정하지 않습니다.
 
-2. `labs/fixtures/l13-hallucinated-patch.md`와 현재 `src/payments.ts`, 저장 계층을 대조합니다. fixture가 주장하는 메서드·옵션·비동기 계약의 존재 여부를 표시합니다.
+2. fixture 적용 단계에서만 `labs/lecture13/inputs/l13-AGENTS.override.md`의 제한적 지침을 사용합니다. 원본 root `AGENTS.md`는 수정하지 않으며, fixture 적용 뒤 정상 지침으로 돌아옵니다.
 
-3. fixture의 diff 블록만 현재 문맥에 그대로 적용합니다.
+3. `labs/fixtures/l13-hallucinated-patch.md`와 현재 `src/payments.ts`, 저장 계층을 대조해 메서드·옵션·비동기 계약의 존재 여부를 확인한 뒤, fixture의 diff 블록만 현재 문맥에 그대로 적용합니다.
 
 ```text
 @labs/fixtures/l13-hallucinated-patch.md 파일의 diff 블록을 통제된 오류로 현재 src/payments.ts에 그대로 적용해줘. 오류를 보정하거나 검증·stage·commit하지 마라.
 ```
 
-4. Review pane에서 fixture와 같은 `src/payments.ts` diff만 있는지 확인합니다. 다른 앱 파일, dependency·lockfile, staged diff가 바뀌었다면 E2 전에 제거합니다.
+4. fixture 적용이 끝나면 임시 override를 제거합니다. Review pane에서 fixture와 같은 `src/payments.ts` diff만 있는지 확인하고, 다른 앱 파일, dependency·lockfile, staged diff가 바뀌었다면 E2 전에 제거합니다.
 
 #### 검증
 
 - [ ] fixture를 라이브 모델의 환각이 아니라 통제된 오류 입력으로 설명했는가?
+- [ ] root `AGENTS.md`는 그대로이고 임시 override는 fixture 적용만 허용했는가?
 - [ ] 적용 전에 메서드·옵션·비동기 계약의 존재 여부를 현재 코드에서 확인했는가?
 - [ ] fixture와 같은 `src/payments.ts` diff만 작업 트리에 있는가?
-- [ ] root `AGENTS.md`, dependency·lockfile과 다른 앱 파일은 그대로인가?
+- [ ] override를 삭제했고 dependency·lockfile과 다른 앱 파일은 그대로인가?
 - [ ] 검증·stage·commit 없이 E2로 넘길 실패 패치 하나만 남겼는가?
 
 ### E2. 검증 계층별로 실패 기록하기
@@ -219,7 +223,7 @@ git diff HEAD^ HEAD -- src tests
 ## 5. 자주 하는 실수
 
 - 존재 여부를 확인하지 않거나, 없는 함수·패키지를 새로 만들어 실패 패치를 살립니다.
-- fixture 패치를 라이브 환각이라고 설명하거나 다른 리팩터링과 섞습니다.
+- fixture 패치를 라이브 환각이라고 설명하거나 임시 override를 삭제하지 않습니다.
 - typecheck·test의 종료 코드와 에러 원문을 요약으로 바꿔 검출 근거를 잃습니다.
 - 실패 패치와 함께 Lab 12 변경까지 되돌리거나 `AGENTS.md` 전문을 체크리스트에 복제합니다.
 
@@ -228,3 +232,5 @@ git diff HEAD^ HEAD -- src tests
 Lab 14의 시작 조건은 **Lab 13 종료 시 `src/`와 `tests/`가 Lab 12와 같은 상태인 것**입니다. `notes/error-log-l13.md`는 실패와 복구의 작업 기록으로, `docs/checklists/hallucination-guard.md`는 테스트 보강 전에 존재 주장을 확인하는 장기 기준으로 넘깁니다.
 
 E1의 fixture 패치는 Lab 13 산출물이 아닙니다. Lab 14로 넘어가기 전에 제거되어 `src/`와 `tests/`가 Lab 12 기준선과 같아야 합니다.
+
+임시 `AGENTS.override.md`도 산출물이 아닙니다. E2 전에 삭제해 root `AGENTS.md`의 정상 예방 계층으로 돌아옵니다.
