@@ -116,13 +116,8 @@ fixture에 적힌 이름이 그럴듯해도 존재 근거가 되지 않습니다
 
 #### 실행
 
-```bash
-npm run typecheck
-npm test
-```
-
 ```text
-방금 실행한 typecheck와 test 결과로 notes/error-log-l13.md를 작성해줘. 각 명령의 종료 코드, 첫 관련 에러 원문을 그대로, 파일과 위치를 구분해 기록하고 두 검증이 잡은 문제의 차이를 적어라. 아직 패치를 수정하거나 stage·commit하지 마라.
+현재 통제된 실패 패치를 수정하지 말고 npm run typecheck와 npm test를 직접 실행해줘. 각 명령의 실행 여부와 종료 코드, 첫 관련 에러 원문, 파일과 위치를 구분해 notes/error-log-l13.md에 기록하고 두 검증이 잡은 문제의 차이를 적어라. 실행하지 못한 명령은 그 이유를 기록하고 패치 수정·stage·commit은 하지 마라.
 ```
 
 #### 검증
