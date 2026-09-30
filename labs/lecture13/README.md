@@ -6,7 +6,6 @@
 - typecheck와 test가 서로 다른 검증 증거를 만든다는 것을 실제 출력으로 구분합니다.
 - 주입한 패치만 최소 복구해 `src/`와 `tests/`를 Lab 12 상태로 되돌립니다.
 - `notes/error-log-l13.md`, `docs/checklists/hallucination-guard.md`를 남깁니다.
-- 예상 소요 시간은 40분입니다.
 
 Lab 04~11에서 만든 root `AGENTS.md`와 기준 문서는 변경 전에 근거와 승인 범위를 확인하는 **예방 계층**입니다. 안전한 모델은 승인된 계획 없이 앱 파일을 바꾸지 않으므로 라이브 환각은 수업 입력으로 재현성이 낮습니다. 이번 Lab은 원본 지침을 수정하지 않고, fixture 적용 단계에만 제한적 `AGENTS.override.md`를 사용합니다. 출처가 명확한 실패 패치를 **통제된 fault injection**으로 적용한 뒤 override를 제거하고, 정상 지침 아래에서 typecheck·test와 최소 복구 절차를 확인합니다.
 
@@ -27,12 +26,12 @@ git diff --stat -- src tests
 
 ## 2. 실습 목표와 산출물
 
-| 단계 | 핵심 개념 | 핵심 작업 | 결과 | 배분 |
-| --- | --- | --- | --- | ---: |
-| E1 | 통제된 fault injection | 제한적 override에서 fixture를 그대로 적용하고 원래 지침으로 복귀 | 커밋하지 않은 실패 패치 | 10분 |
-| E2 | 검출 계층의 차이 | typecheck와 test 결과를 원문으로 기록 | `notes/error-log-l13.md` | 10분 |
-| E3 | 최소 복구 | E1 패치만 제거하고 전후 검증 연결 | Lab 12와 같은 `src`·`tests` | 8분 |
-| E4 | 실패를 재사용 기준으로 전환 | `AGENTS.md`와 겹치지 않는 guard 작성·커밋 | `docs/checklists/hallucination-guard.md` | 12분 |
+| 단계 | 핵심 개념 | 핵심 작업 | 결과 |
+| --- | --- | --- | --- |
+| E1 | 통제된 fault injection | 제한적 override에서 fixture를 그대로 적용하고 원래 지침으로 복귀 | 커밋하지 않은 실패 패치 |
+| E2 | 검출 계층의 차이 | typecheck와 test 결과를 원문으로 기록 | `notes/error-log-l13.md` |
+| E3 | 최소 복구 | E1 패치만 제거하고 전후 검증 연결 | Lab 12와 같은 `src`·`tests` |
+| E4 | 실패를 재사용 기준으로 전환 | `AGENTS.md`와 겹치지 않는 guard 작성·커밋 | `docs/checklists/hallucination-guard.md` |
 
 ```mermaid
 flowchart LR
@@ -183,14 +182,7 @@ git diff -- src tests
 @notes/error-log-l13.md와 root @AGENTS.md를 대조해 docs/checklists/hallucination-guard.md를 작성해줘. AGENTS.md의 읽기 순서를 복제하지 말고, 코드·패키지의 실제 존재 확인, type·signature 확인, 실행 검증, 에러 원문 보존, 확인하지 못한 내용의 `확인 필요` 표시를 분리한 체크 항목을 다섯 개 이상 둬라. 각 항목에는 확인한 위치를 적을 자리를 두고 확인하지 못한 항목은 `확인 필요`로 표시해라. 앱 코드는 수정하지 마라.
 ```
 
-아래 두 산출물만 stage합니다. staged diff에서 `src/`·`tests/`가 비어 있을 때만 커밋합니다.
-
-```bash
-git add -- notes/error-log-l13.md docs/checklists/hallucination-guard.md
-git diff --cached --stat
-git diff --cached -- src tests
-git commit -m "docs: add hallucination guard"
-```
+`notes/error-log-l13.md`와 `docs/checklists/hallucination-guard.md` 두 산출물만 stage하고, staged diff에 `src/`·`tests/`가 없을 때만 커밋합니다.
 
 #### 검증
 
@@ -214,7 +206,6 @@ git diff HEAD^ HEAD -- src tests
 - [ ] 필수 산출물과 앱 검사가 통과했는가?
 - [ ] error log의 실패·복구 기록과 guard 항목이 연결되는가?
 - [ ] Lab 13 커밋의 `src/`·`tests/` 순변경이 없는가?
-- [ ] E1~E4를 40분 안에 마쳤거나 중단 이유를 기록했는가?
 
 ## 5. 자주 하는 실수
 
