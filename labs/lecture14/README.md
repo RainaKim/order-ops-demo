@@ -82,14 +82,22 @@ E2와 E3는 성공·실패로 나뉘는 것이 아니라 **정책 질문에 대�
 | 관리자 조회 실패 사유 | 아직 저장·응답할 필드가 없음 | 정책 기준 테스트로 미구현을 드러냄 |
 | 관리자 목록 기본 검사 | `Array.isArray`만 확인 | 변경 전 나쁜 통과로 기록하고 E3에서 관리자 테스트로 이동·교체 |
 
-`lists admin orders`의 기존 assertion은 E4 비교표에 쓸 변경 전 증거로 원문을 기록합니다. 최종 suite에 약한 테스트를 남기거나 두 파일에 중복하지 않습니다. 추가로 `creates an order`와 `gets an order`는 상태 코드만 확인하므로 응답 값·저장 상태·재고 불변을 묻는 좋은 통과 후보입니다. 위험도가 높다는 이유만으로 이미 깊게 검증된 케이스를 다시 쓰지 않습니다.
+테스트 이름이나 통과 여부가 아니라 assertion 원문을 기준으로 검증 범위를 판단합니다. 이미 충분히 검증된 동작은 중복하지 않고, 판정에 필요한 값을 묻지 않는 assertion은 후속 보강 후보로 기록합니다. 이동·교체할 파일은 조사 결과를 사람이 검토한 뒤 결정합니다.
 
 여기서 만드는 것은 테스트 목록이 아니라 **정책–assertion 연결표**입니다. 코드가 실행됐는지가 아니라 정책의 어떤 문장을 어느 assertion이 판정하는지 연결하고, 연결이 이미 있으면 중복 대신 책임 파일만 정리합니다.
 
 #### 실행
 
 ```text
-@tests/orders.test.ts와 @docs/order-policy.md @docs/payment-policy.md @docs/inventory-policy.md를 대조해 notes/assertion-review-l14.md 초안을 작성해줘. 품절 주문 차단, 결제 실패 상태, 관리자 조회 실패 사유마다 이미 검증되는 값과 비어 있는 값을 구분하고, creates an order·gets an order의 얕은 assertion도 표시해라. lists admin orders의 기존 Array.isArray assertion은 변경 전 나쁜 통과의 원문으로 기록하고 E3에서 admin.test.ts로 이동·교체할 대상으로 표시해라. 위험, 관찰할 값, 예상 결과와 수정할 테스트 파일을 표로 남기되 아직 테스트나 src는 수정하지 마라.
+@tests/orders.test.ts와 @docs/order-policy.md @docs/payment-policy.md
+@docs/inventory-policy.md를 대조해 notes/assertion-review-l14.md 초안을 작성해줘.
+
+주문 생성·조회, 재고 부족, 결제 실패, 관리자 조회에서
+기존 assertion이 실제로 보장하는 값과 아직 판정할 수 없는 값을 구분해라.
+테스트 이름이 아니라 assertion 원문을 근거로 판단하고,
+위험·관찰할 값·정책상 예상 결과·후속 테스트 책임 후보를 표로 정리해라.
+
+아직 테스트나 src는 수정하지 마라.
 ```
 
 #### 검증
