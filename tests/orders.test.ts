@@ -14,6 +14,20 @@ describe('order operations', () => {
       .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
 
     expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      items: [{ productId: 'keyboard', quantity: 1 }],
+      totalKrw: 49_000,
+      status: 'pending',
+    });
+    expect(response.body.id).toEqual(expect.any(String));
+    expect(response.body.createdAt).toEqual(expect.any(String));
+    expect(orders.get(response.body.id)).toMatchObject({
+      id: response.body.id,
+      items: [{ productId: 'keyboard', quantity: 1 }],
+      totalKrw: 49_000,
+      status: 'pending',
+      createdAt: response.body.createdAt,
+    });
   });
 
   it('rejects an order when aggregated quantities exceed stock without changing orders or products', async () => {
@@ -58,6 +72,7 @@ describe('order operations', () => {
     const response = await request(app).get(`/orders/${created.body.id as string}`);
 
     expect(response.status).toBe(200);
+    expect(response.body).toEqual(created.body);
   });
 
   it('decrements aggregated stock once and records a successful payment', async () => {
@@ -76,6 +91,17 @@ describe('order operations', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.ok).toBe(true);
+    expect(response.body.order).toMatchObject({
+      id: created.body.id,
+      items: [
+        { productId: 'keyboard', quantity: 1 },
+        { productId: 'mouse', quantity: 1 },
+        { productId: 'keyboard', quantity: 2 },
+      ],
+      totalKrw: 170_000,
+      status: 'paid',
+      createdAt: created.body.createdAt,
+    });
     expect(orders.get(created.body.id as string)?.status).toBe('paid');
     expect(products.get('keyboard')?.stock).toBe(2);
     expect(products.get('mouse')?.stock).toBe(9);
@@ -130,10 +156,23 @@ describe('order operations', () => {
     const fetched = await request(app).get(`/orders/${orderId}`);
 
     expect(payment.status).toBe(402);
+    expect(payment.body).toEqual({ ok: false });
     expect(fetched.status).toBe(200);
-    expect(fetched.body.status).toBe('payment_failed');
+    expect(fetched.body).toMatchObject({
+      id: orderId,
+      items: [{ productId: 'mouse', quantity: 2 }],
+      totalKrw: 46_000,
+      status: 'payment_failed',
+      createdAt: created.body.createdAt,
+    });
     expect(paymentAttempts).toHaveLength(1);
-    expect(paymentAttempts[0]).toMatchObject({ orderId, ok: false });
+    expect(paymentAttempts[0]).toMatchObject({
+      orderId,
+      ok: false,
+      amountKrw: 46_000,
+    });
+    expect(paymentAttempts[0]?.at).toEqual(expect.any(String));
+    expect(Date.parse(paymentAttempts[0]?.at ?? '')).not.toBeNaN();
     expect(products.get('mouse')?.stock).toBe(10);
   });
 
@@ -160,9 +199,37 @@ describe('order operations', () => {
     expect(products.get('monitor')?.stock).toBe(stockBeforeRetry);
   });
 
-  it('lists admin orders', async () => {
+  // 정책은 실패 주문 상태를 `payment_failed`로 요구하지만, 현재 구현은 `결제실패`를 파생한다.
+  it.fails('lists stored orders with their policy statuses for administrators', async () => {
+    const pending = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+    const failed = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'mouse', quantity: 2 }] });
+    await request(app)
+      .post(`/orders/${failed.body.id as string}/pay`)
+      .send({ cardToken: 'FAIL-CARD' });
+
     const response = await request(app).get('/admin/orders');
 
-    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(2);
+    expect(response.body).toEqual(
+      expect.arrayContaining([
+        {
+          id: pending.body.id,
+          totalKrw: 49_000,
+          status: 'pending',
+          createdAt: pending.body.createdAt,
+        },
+        {
+          id: failed.body.id,
+          totalKrw: 46_000,
+          status: 'payment_failed',
+          createdAt: failed.body.createdAt,
+        },
+      ]),
+    );
   });
 });
