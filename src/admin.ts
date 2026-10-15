@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { orders, paymentAttempts, type Order } from './store.js';
@@ -31,9 +32,23 @@ function toAdminOrder(order: Order): AdminOrder {
 export const adminRouter = Router();
 
 adminRouter.get('/orders', (_req: Request, res: Response) => {
+  const requestId = randomUUID();
+  const phase = 'list_orders';
+
   try {
     res.json(Array.from(orders.values(), toAdminOrder));
-  } catch {
-    res.json([]);
+  } catch (error) {
+    console.error({
+      errorType: error instanceof Error ? error.name : typeof error,
+      requestId,
+      orderId: undefined,
+      phase,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      beforeStatus: undefined,
+      afterStatus: undefined,
+      location: 'adminRouter.get /orders',
+    });
+    res.status(500).json({ ok: false, error: 'internal_error', requestId });
   }
 });

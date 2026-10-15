@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import {
@@ -97,25 +98,34 @@ export const paymentsRouter = Router();
 paymentsRouter.post(
   '/:id/pay',
   (req: Request<{ id: string }, unknown, PaymentBody>, res: Response) => {
+    const requestId = randomUUID();
+    const orderId = req.params.id;
+    let order: Order | undefined;
+    let beforeStatus: Order['status'] | undefined;
+    let phase = 'order_lookup';
+
     try {
-      const orderId = req.params.id;
-      const order = orders.get(orderId);
+      order = orders.get(orderId);
+      beforeStatus = order?.status;
       if (!order) {
         res.status(404).json({ message: 'Order not found' });
         return;
       }
 
+      phase = 'payability_check';
       if (!isPayable(order)) {
         rejectInvalidRequest(res, 'Order is not payable');
         return;
       }
 
+      phase = 'card_token_parse';
       const card = parseCardToken(req.body.cardToken);
       if (!card) {
         rejectInvalidRequest(res, 'Invalid card token');
         return;
       }
 
+      phase = 'failure_payment';
       if (card.shouldFail) {
         recordAttempt(order, false);
         order.status = 'payment_failed';
@@ -123,16 +133,28 @@ paymentsRouter.post(
         return;
       }
 
+      phase = 'inventory_check';
       if (!hasSufficientStock(order)) {
         res.status(409).end();
         return;
       }
 
+      phase = 'complete_payment';
       const paidOrder = completePayment(order);
       res.json({ ok: true, order: paidOrder });
-    } catch (e) {
-      console.log(e);
-      res.json({ ok: false });
+    } catch (error) {
+      console.error({
+        errorType: error instanceof Error ? error.name : typeof error,
+        requestId,
+        orderId,
+        phase,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        beforeStatus,
+        afterStatus: order?.status,
+        location: 'paymentsRouter.post /:id/pay',
+      });
+      res.status(500).json({ ok: false, error: 'internal_error', requestId });
     }
   },
 );

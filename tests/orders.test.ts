@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { app } from '../src/server.js';
 import { orders, paymentAttempts, products, resetStore } from '../src/store.js';
 
@@ -197,6 +197,118 @@ describe('order operations', () => {
     expect(orders.get(orderId)?.status).toBe('payment_failed');
     expect(paymentAttempts).toHaveLength(attemptsBeforeRetry);
     expect(products.get('monitor')?.stock).toBe(stockBeforeRetry);
+  });
+
+  it('returns an approved internal error response and preserves payment error context', async () => {
+    const created = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+    const orderId = created.body.id as string;
+    const order = orders.get(orderId);
+    if (!order) {
+      throw new Error('Expected created order');
+    }
+
+    const originalItems = order.items;
+    const unexpected = new Error('Simulated payment exception');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    Object.defineProperty(order, 'items', {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        throw unexpected;
+      },
+    });
+
+    try {
+      const response = await request(app)
+        .post(`/orders/${orderId}/pay`)
+        .send({ cardToken: 'CARD-123' });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        ok: false,
+        error: 'internal_error',
+        requestId: expect.any(String),
+      });
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errorType: 'Error',
+          requestId: response.body.requestId,
+          orderId,
+          phase: 'inventory_check',
+          message: 'Simulated payment exception',
+          stack: expect.any(String),
+          beforeStatus: 'pending',
+          afterStatus: 'pending',
+          location: 'paymentsRouter.post /:id/pay',
+        }),
+      );
+      expect(paymentAttempts).toHaveLength(0);
+      expect(products.get('keyboard')?.stock).toBe(5);
+    } finally {
+      Object.defineProperty(order, 'items', {
+        configurable: true,
+        enumerable: true,
+        value: originalItems,
+        writable: true,
+      });
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('lists a pending order for administrators', async () => {
+    const created = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+
+    const response = await request(app).get('/admin/orders');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      {
+        id: created.body.id,
+        totalKrw: 49_000,
+        status: 'pending',
+        createdAt: created.body.createdAt,
+      },
+    ]);
+  });
+
+  it('returns an approved internal error response and preserves admin error context', async () => {
+    const unexpected = new Error('Simulated admin exception');
+    const originalValues = orders.values;
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    orders.values = () => {
+      throw unexpected;
+    };
+
+    try {
+      const response = await request(app).get('/admin/orders');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        ok: false,
+        error: 'internal_error',
+        requestId: expect.any(String),
+      });
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errorType: 'Error',
+          requestId: response.body.requestId,
+          orderId: undefined,
+          phase: 'list_orders',
+          message: 'Simulated admin exception',
+          stack: expect.any(String),
+          beforeStatus: undefined,
+          afterStatus: undefined,
+          location: 'adminRouter.get /orders',
+        }),
+      );
+    } finally {
+      orders.values = originalValues;
+      errorSpy.mockRestore();
+    }
   });
 
   // 정책은 실패 주문 상태를 `payment_failed`로 요구하지만, 현재 구현은 `결제실패`를 파생한다.
