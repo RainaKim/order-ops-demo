@@ -5,7 +5,7 @@
 - 빈 배열, 기본 응답, 로그만 남기고 계속하는 **silent fallback**을 실제 오류 경로에서 찾습니다.
 - 오류를 없애기 위한 빠른 fallback 후보와, 실패를 드러내는 처리의 차이를 사람 승인으로 구분합니다.
 - 정책이 정하지 않은 예기치 못한 예외의 외부 응답은 임의로 확정하지 않고, 승인된 경계만 구현·검증합니다.
-- `docs/retry-stop-matrix.md`, `docs/checklists/failure-handling.md`를 남깁니다.
+- `docs/retry-stop-matrix.md`를 결제 실패 처리의 재사용 가능한 참조 문서로 남깁니다.
 
 Lab 13·14에서는 `src/`를 바꾸지 않고 오류를 검출하고 assertion을 보강했습니다. 이번 Lab은 Lab 12 이후 처음으로 앱의 오류 처리 경계를 바꾸되, 오류를 성공처럼 보이게 하지 않는 작은 루프를 완성합니다.
 
@@ -25,7 +25,7 @@ Lab 13·14에서는 `src/`를 바꾸지 않고 오류를 검출하고 assertion�
 | E1 | silent fallback 탐지 | 실패 입력부터 외부 응답까지 정보가 사라지는 지점을 추적 | fallback 조사 결과 |
 | E2 | 승인된 오류 경계 | 후보·trade-off를 검토하고, 승인 뒤 fallback 제거와 예외 경로 테스트 | 변경된 오류 처리와 관련 테스트 |
 | E3 | retry와 stop 구분 | 확정 정책과 사람 판단이 필요한 재시도 후보를 분리 | `docs/retry-stop-matrix.md` |
-| E4 | 재사용 가능한 failure handling | 오류 보존·응답·검증 기준을 checklist로 고정하고 전체 검증·커밋 | `docs/checklists/failure-handling.md` |
+| E4 | 결제 실패 처리 정리 | matrix에 재사용 가능한 확인 기준을 통합하고 전체 검증·커밋 | `docs/retry-stop-matrix.md` |
 
 ```mermaid
 flowchart LR
@@ -157,17 +157,17 @@ Codex가 fallback 후보를 내지 않으면, “예외를 잡은 뒤 빈 배열
 - [ ] stop 사례와 사람 승인 전 후보를 포함한 retry 사례가 각각 두 개 이상 있는가?
 - [ ] 승인된 오류 처리 경계가 별도 절에 남았는가?
 
-### E4. Failure handling checklist로 고정하기
+### E4. 결제 실패 처리 매트릭스로 고정하기
 
 #### 설계 질문
 
-- 다음 변경에서 silent fallback을 다시 넣지 않으려면 무엇을 확인해야 하나요?
-- 외부 응답, 서버 쪽 오류 보존, retry·stop, 예외 경로 테스트를 어떻게 한 기준으로 연결하나요?
+- 지금까지 기록한 실패 처리 판단을 다음 결제 변경에서도 읽을 수 있는 참조 문서로 어떻게 다듬나요?
+- 외부 응답, 서버 쪽 오류 보존, retry·stop, 예외 경로 테스트의 확인 기준을 한 문서 안에서 어떻게 연결하나요?
 - 전체 검증 결과와 변경 파일 범위를 어떻게 커밋 전 증거로 남기나요?
 
 #### 판단 기준
 
-| 확인 범위 | checklist가 물어야 할 질문 |
+| 확인 범위 | matrix의 `변경 전 확인`이 물어야 할 질문 |
 | --- | --- |
 | 오류 보존 | 원인 추적 근거가 서버 쪽에 남는가? |
 | 외부 응답 | 안전한 실패와 내부 정보 비노출이 함께 지켜지는가? |
@@ -176,20 +176,21 @@ Codex가 fallback 후보를 내지 않으면, “예외를 잡은 뒤 빈 배열
 | stop | 반복하지 말아야 할 실패의 다음 행동이 있는가? |
 | 테스트 | 정상·예외 경로가 각각 실제로 검증됐는가? |
 
-체크리스트는 여섯 항목 이상이어야 하며, 이번 Lab의 특정 코드 조각을 복사하지 않습니다. 오류를 숨기지 않는 변경을 다음 작업에서도 판단할 수 있는 재사용 기준으로 남깁니다.
+이 단계에서는 새 checklist 문서를 만들지 않습니다. 기존 `docs/retry-stop-matrix.md`의 제목을 **결제 실패 처리 매트릭스**로 다듬고, `## 변경 전 확인` 절에 여섯 항목 이상의 재사용 가능한 확인 기준을 둡니다. 정본은 계속 `docs/payment-policy.md`이며, 이 matrix는 확정된 정책과 보류된 판단을 실제 실패 처리와 연결하는 보조 참조 문서입니다.
 
 #### 실행
 
 ```text
-@docs/retry-stop-matrix.md, 현재 변경 diff, 실제 검증 결과를 사용해 docs/checklists/failure-handling.md를 작성해줘. 오류 보존, 외부 응답, 로그, retry, stop, 테스트를 분리한 체크 항목을 여섯 개 이상 두고, 정책 미결은 확인 필요 또는 사람 승인 전 후보로 표시해라. 이어서 test, lint, typecheck를 실행해 결과를 구분해 기록하고, 결제·관리자 오류 처리와 관련 테스트·두 문서만 포함해 커밋해라.
+@docs/retry-stop-matrix.md, @docs/payment-policy.md, 현재 변경 diff, 실제 검증 결과를 사용해 기존 matrix를 `결제 실패 처리 매트릭스`로 다듬어줘. 새 문서는 만들지 마라. 각 실패 행에서 외부 응답, 서버 쪽 오류 보존, retry·stop, 정책 상태를 구분하고, `## 변경 전 확인` 절에는 오류 보존·외부 응답·로그·retry·stop·테스트를 포함한 재사용 가능한 확인 항목을 여섯 개 이상 둬라. 정책 미결은 확인 필요 또는 사람 승인 전 후보로 표시해라. 이어서 test, lint, typecheck를 실행해 실제 결과와 미실행 항목을 구분해 기록하고, 결제·관리자 오류 처리, 관련 테스트, 이 matrix만 포함해 커밋해라.
 ```
 
 #### 검증
 
-- [ ] checklist에 오류 보존·외부 응답·로그·retry·stop·테스트 항목이 각각 있는가?
-- [ ] `docs/retry-stop-matrix.md`가 확정 기준과 승인 전 후보를 구분하는가?
+- [ ] matrix의 제목과 목적이 결제 실패 처리 전체를 설명하며, 정본 정책을 대체하지 않는가?
+- [ ] `## 변경 전 확인`에 오류 보존·외부 응답·로그·retry·stop·테스트 항목이 각각 있는가?
+- [ ] matrix가 확정 기준과 승인 전 후보를 구분하는가?
 - [ ] 전체 test·lint·typecheck의 실제 결과와 미실행 항목이 구분됐는가?
-- [ ] 변경 파일이 결제·관리자 오류 처리, 관련 테스트, 두 문서로 제한되는가?
+- [ ] 변경 파일이 결제·관리자 오류 처리, 관련 테스트, 이 matrix로 제한되는가?
 - [ ] 커밋에 관리자 실패 사유 필드나 승인 밖 정책 결정이 들어가지 않았는가?
 
 ## 4. Self-check
@@ -197,14 +198,14 @@ Codex가 fallback 후보를 내지 않으면, “예외를 잡은 뒤 빈 배열
 ```bash
 node labs/tools/check.mjs 15
 git show --stat --oneline HEAD
-git diff HEAD^ HEAD -- src tests docs/checklists/failure-handling.md docs/retry-stop-matrix.md
+git diff HEAD^ HEAD -- src tests docs/retry-stop-matrix.md
 ```
 
 - [ ] 두 fallback이 실패를 성공 모양이나 빈 값으로 바꾸지 않게 되었는가?
 - [ ] 예기치 못한 예외의 외부 응답과 서버 쪽 오류 보존이 사람 승인과 일치하는가?
 - [ ] 두 예외 경로와 정상 경로를 함께 검증했는가?
 - [ ] retry·stop matrix가 정책 확정과 미결을 구분하는가?
-- [ ] 필수 checklist와 matrix가 있고, 커밋 범위가 E4의 제한을 지키는가?
+- [ ] 결제 실패 처리 matrix 하나에 재사용 가능한 변경 전 확인 항목이 있고, 커밋 범위가 E4의 제한을 지키는가?
 
 Self-check는 단순히 테스트가 green인지가 아니라, 실패 입력·승인된 경계·외부 응답·서버 증거·다음 행동이 연결되는지를 확인합니다.
 
@@ -217,6 +218,6 @@ Self-check는 단순히 테스트가 green인지가 아니라, 실패 입력·�
 
 ## 6. 다음 lab으로 넘기는 것
 
-Lab 16에는 승인된 오류 처리 경계, 실제 검증 결과, retry-stop matrix와 failure handling checklist를 PR preflight 근거로 넘깁니다. 이전 Lab의 관리자 상태 `it.fails()`는 이 Lab에서 유지하며, silent fallback 제거 검증과 같은 책임으로 설명하지 않습니다.
+Lab 16에는 승인된 오류 처리 경계, 실제 검증 결과와 결제 실패 처리 matrix를 PR preflight 근거로 넘깁니다. 이전 Lab의 관리자 상태 `it.fails()`는 이 Lab에서 유지하며, silent fallback 제거 검증과 같은 책임으로 설명하지 않습니다.
 
 관리자 실패 사유 필드는 Lab 17까지 추가하지 않습니다.
