@@ -1,11 +1,17 @@
 {
   "lecture": "17",
   "required": [
-    { "path": "docs/prompts/planner.md" },
-    { "path": "docs/prompts/implementer.md" },
-    { "path": "docs/prompts/reviewer.md" },
-    { "path": "notes/role-split-run-l17.md" }
+    { "path": "docs/prompts/planner.md", "fixedHeadings": ["## 입력", "## 금지", "## 출력", "## 검증", "## Handoff"] },
+    { "path": "docs/prompts/implementer.md", "fixedHeadings": ["## 입력", "## 금지", "## 출력", "## 검증", "## Handoff"] },
+    { "path": "docs/prompts/reviewer.md", "fixedHeadings": ["## 입력", "## 금지", "## 출력", "## 검증", "## Handoff"] },
+    {
+      "path": "notes/role-split-run-l17.md",
+      "fixedHeadings": ["## 사람 승인 지점"],
+      "sectionMinItems": [{ "heading": "## 사람 승인 지점", "minItems": 3 }]
+    }
   ],
-  "optional": [],
+  "optional": [
+    { "path": "notes/plans/admin-failure-info-l17.md" }
+  ],
   "runAppChecks": true
 }
