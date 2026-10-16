@@ -27,16 +27,7 @@ git worktree add ../order-ops-demo-l17-single -b lab17-single HEAD
 git worktree list
 ```
 
-새 worktree에는 Git이 추적하지 않는 `node_modules/`가 따라오지 않습니다. 설치는 네트워크가 필요하고 Codex 세션의 sandbox에서 막힐 수 있으므로 사람이 터미널에서 직접 실행합니다. 이어서 두 worktree가 같은 검증 기준에서 시작하는지 확인합니다.
-
-```bash
-npm --prefix ../order-ops-demo-l17-roles ci
-npm --prefix ../order-ops-demo-l17-single ci
-npm --prefix ../order-ops-demo-l17-roles test
-npm --prefix ../order-ops-demo-l17-single test
-```
-
-두 worktree에서 test가 통과하고 기존 `it.fails()`가 기대 실패로 유지되는지 확인합니다. 하나라도 다르면 E1 전에 멈추고 차이를 기록합니다. lint·typecheck는 구현 뒤 두 결과를 비교할 때 각각 실행합니다.
+새 worktree에는 Git이 추적하지 않는 `node_modules/`가 따라오지 않습니다. 실제 비교 전에 두 worktree의 의존성을 설치하고 테스트 기준선을 확인해 실행 환경을 같게 맞춥니다. 테스트가 통과하지 않거나 기존 기대 실패가 달라지면 E1 전에 멈추고 차이를 기록합니다.
 
 E2의 단일 세션 쪽은 비교 후 폐기하고 역할 분리 쪽만 채택합니다. 두 worktree에서 `src/`를 동시에 섞지 않습니다.
 
