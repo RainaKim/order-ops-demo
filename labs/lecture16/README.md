@@ -262,27 +262,57 @@ PR 후보는 검증 명령이 모두 통과했다고 자동으로 review-ready�
 
 #### 수행 순서
 
-1. `notes/pr-draft-l16.md`에 `## Review-ready 판정`을 추가합니다.
-2. preflight 실행 기록, 남은 blocker, 위험 순서, 사람이 정할 항목을 근거와 함께 연결합니다.
-3. 전체 검증을 다시 실행합니다.
-4. ready 또는 conditional ready이고 범위가 문서·기록·`.github`에만 한정될 때만 커밋합니다.
+1. 현재 근거로 review-ready 상태와 리뷰 순서를 읽기 전용으로 제안받습니다.
+2. 사람이 상태 판정, blocker, 남은 위험과 rollback 근거를 확인하고 승인합니다.
+3. 승인된 판정을 PR draft에 반영하고 전체 검증을 다시 실행합니다.
+4. 사람이 최종 diff와 검증 결과를 확인합니다.
+5. ready 또는 conditional ready이고 범위가 문서·기록·`.github`에만 한정될 때만 커밋합니다.
 
-#### 실행
+#### 실행 1 — 읽기 전용 판정 제안
 
 ```text
-notes/pr-draft-l16.md에 ## Review-ready 판정을 추가해 현재 PR 후보를 ready, conditional ready, not ready 중 하나로 판정해줘.
-notes/preflight-run-l16.md의 증거, 남은 blocker, 위험을 근거로 정한 리뷰 순서, 사람이 정할 항목과 rollback·reviewer notes의 diff 또는 커밋 근거를 구분해 적어라.
-전체 test·lint·typecheck 결과를 다시 확인하고, not ready이면 커밋하지 말며 다른 상태에서도 src, tests, package.json은 커밋에 포함하지 마라.
+@notes/pr-draft-l16.md와 @notes/preflight-run-l16.md,
+현재 diff와 검증 근거를 대조해 review-ready 상태를 제안해줘.
+
+ready, conditional ready, not ready 중 하나를 고르고,
+남은 blocker, 위험 순서에 따른 리뷰 순서,
+사람이 확인할 항목과 rollback 근거를 구분해 보고해라.
+
+파일을 수정하거나 검증·stage·commit하지 마라.
 ```
 
-#### 검증
+#### 사람 확인 — 판정 제안
+
+- [ ] 상태 판정이 preflight와 현재 diff의 근거에 연결되는가?
+- [ ] 기대 실패·미결 정책을 숨기거나 자동 blocker로 단정하지 않았는가?
+- [ ] 현재 PR의 blocker와 범위 밖 risk를 구분했는가?
+- [ ] 리뷰 순서와 rollback이 실제 diff 또는 커밋에 근거하는가?
+
+사람이 판정을 승인하거나 수정한 뒤에만 다음 실행으로 넘어갑니다.
+
+#### 실행 2 — 승인된 판정 반영과 최종 검증
+
+```text
+방금 사람이 승인한 review-ready 판정을
+@notes/pr-draft-l16.md의 ## Review-ready 판정에 반영해줘.
+
+npm test, npm run lint, npm run typecheck를 실행하고 실제 결과를 기록하되,
+실패·기대 실패·미실행을 일반 통과로 쓰지 마라.
+새 실패가 나오면 승인된 상태를 그대로 유지하지 말고 결과를 기록한 뒤 멈춰라.
+src, tests, package.json을 수정하거나 stage·commit하지 마라.
+```
+
+#### 사람 확인 — 최종 결과
 
 - [ ] `## Review-ready 판정`이 ready·conditional ready·not ready 중 하나를 근거와 함께 선택하는가?
 - [ ] preflight 실행 기록, 남은 blocker, 사람 결정 항목을 구분하는가?
 - [ ] rollback과 reviewer notes가 실제 diff 또는 커밋 증거에 연결되는가?
 - [ ] 확인된 위험·미결·미실행 검증을 일반 ready의 근거로 과장하지 않았는가?
 - [ ] 리뷰 순서와 준비 상태가 preflight·diff·정책 근거로 설명되는가?
+- [ ] 최종 test·lint·typecheck 결과와 판정이 서로 어긋나지 않는가?
 - [ ] 커밋에는 `docs/`, `notes/`, `.github/`만 포함되고 앱·테스트·패키지 파일은 없는가?
+
+사람이 최종 결과를 승인한 뒤 문서·기록·`.github` 변경만 커밋합니다.
 
 ## 4. Self-check
 
