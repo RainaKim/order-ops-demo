@@ -7,7 +7,7 @@
 - `docs/prompts/planner.md`, `implementer.md`, `reviewer.md`에 역할별 계약과 handoff 조건을 둡니다.
 - 같은 시작 커밋·요청·정책 결정·검증 명령으로 단일 세션과 역할 분리 결과를 비교합니다.
 - 정책 승인 전 구현과 reviewer의 직접 수정을 막고, 실제 승인 지점을 기록합니다.
-- 역할 분리 결과에 Lab 16 preflight를 다시 적용해 `notes/role-split-run-l17.md`로 남깁니다.
+- 사람이 검토·교정한 역할 분리 branch에 Lab 16 preflight를 다시 적용해 `notes/role-split-run-l17.md`로 남깁니다.
 
 이 Lab에서는 관리자 실패 정보를 다루지만 필드 이름·허용 값·여러 실패 이력의 선택 기준을 미리 정하지 않습니다. 역할이 나뉘어도 정책 결정과 merge 판단은 사람의 책임입니다.
 
@@ -29,7 +29,7 @@ git worktree list
 
 새 worktree에는 Git이 추적하지 않는 `node_modules/`가 따라오지 않습니다. 실제 비교 전에 두 worktree의 의존성을 설치하고 테스트 기준선을 확인해 실행 환경을 같게 맞춥니다. 테스트가 통과하지 않거나 기존 기대 실패가 달라지면 E1 전에 멈추고 차이를 기록합니다.
 
-E2의 단일 세션 쪽은 비교 후 폐기하고 역할 분리 쪽만 채택합니다. 두 worktree에서 `src/`를 동시에 섞지 않습니다.
+단일 세션 worktree는 비교를 위한 대조군입니다. 비교 기록과 사람의 폐기 결정이 남으면 정리합니다. 역할 분리 branch는 역할 prompt와 승인 기록을 담은 후속 작업의 통합 branch로 이어가지만, 그 구현 결과가 자동으로 승인되는 것은 아닙니다. 두 worktree의 `src/`를 동시에 섞지 않습니다.
 
 ## 2. 실습 목표와 산출물
 
@@ -55,10 +55,13 @@ flowchart LR
   C --> D{사람이 정책·범위 승인}
   D -- 미승인 --> X[중단]
   D -- 승인 --> E[implementer]
-  E --> F[reviewer]
-  F --> G{사람이 발견 사항 처리}
-  G --> H[preflight 재실행·커밋]
-  B --> I[비교 기록 후 폐기]
+  B --> G[네 축 비교 기록]
+  E --> G
+  G --> H[단일 세션 대조군 정리]
+  G --> F[독립 reviewer]
+  F --> I{사람이 발견 사항 처리}
+  I --> J[수용된 범위만 교정]
+  J --> K[preflight 재실행·커밋·채택]
 ```
 
 ## 3. 실습
@@ -198,7 +201,7 @@ deriveDisplayStatus는 변경 범위에서 제외해라. 코드는 수정하지 
 
 - [ ] 승인 메시지와 구현 요청이 분리됐고 승인 기록이 plan에 있는가?
 - [ ] 두 실행의 시작 커밋·요청·결정·검증 명령이 같은가?
-- [ ] 역할 분리 결과만 채택하고 단일 세션 diff는 기록 후 폐기하기로 결정했는가?
+- [ ] 단일 세션의 차이와 유용한 발견이 비교 기록에 남았고, 이 구현 diff는 채택하지 않고 대조군으로 정리하기로 사람이 결정했는가?
 
 단일 세션 worktree는 다음 두 조건을 모두 만족한 뒤에만 정리합니다. 첫째, 단일 세션 diff 요약이 `notes/role-split-run-l17.md`에 기록돼 있어야 합니다. 둘째, 위 사람 확인에서 단일 세션 결과를 폐기하기로 결정해야 합니다. 원래 checkout에서 먼저 폐기할 변경이 기록된 diff 요약과 같은지 확인한 뒤 정리합니다.
 
@@ -208,7 +211,7 @@ git worktree remove --force ../order-ops-demo-l17-single
 git branch -D lab17-single
 ```
 
-이 강제 제거는 기록을 마치고 사람이 폐기하기로 결정한 단일 세션 worktree와 `lab17-single` branch에만 사용합니다. 채택할 역할 worktree에는 사용하지 않습니다.
+이 강제 제거는 기록을 마치고 사람이 폐기하기로 결정한 단일 세션 worktree와 `lab17-single` branch에만 사용합니다. 역할 분리 branch를 남기는 이유는 구현 품질의 승패가 아니라, 다음 단계가 사용할 역할 prompt·plan·승인 기록·비교 기록이 이 branch에 있기 때문입니다. 후속 검토 전의 역할 worktree에는 `--force`를 사용하지 않습니다.
 
 #### 검증
 
@@ -238,16 +241,18 @@ git branch -D lab17-single
 #### 수행 순서
 
 1. 역할 worktree에서 `codex -C ../order-ops-demo-l17-roles`로 새 reviewer CLI 세션을 엽니다.
-2. reviewer는 승인 plan, diff, 테스트, 정책, Lab 16 위험만 읽고 보고합니다.
+2. reviewer는 승인 plan, diff, 테스트, 정책, Lab 16 위험과 E2 비교 기록만 읽고 보고합니다.
 3. 사람이 각 발견을 수용·보류·범위 밖 인계로 분류합니다.
-4. 수용된 항목만 implementer에게 돌려보내고 검증합니다.
+4. 수용된 항목만 implementer에게 돌려보내 승인 범위 안에서 교정·검증합니다.
+5. reviewer 또는 사람이 교정 결과와 남은 보류 항목을 다시 확인합니다.
 
 #### 실행
 
 ```text
 @docs/prompts/reviewer.md를 사용해 승인 기록이 있는 plan, 현재 diff·테스트 결과,
-관련 정책과 Lab 16 review-ready 판정·남은 위험을 읽기 전용으로 검토해줘.
-계획 이탈·누락 테스트·정책 위반·silent fallback·민감정보 노출을 구분하고,
+관련 정책과 Lab 16 review-ready 판정·남은 위험, @notes/role-split-run-l17.md의
+비교 결과를 읽기 전용으로 검토해줘. 계획 이탈·누락 테스트·정책 위반·
+승인되지 않은 범위 확대·silent fallback·민감정보 노출을 구분하고,
 각 발견에 파일·근거·영향·사람 결정을 적되 파일 수정·stage·commit은 하지 마라.
 ```
 
@@ -278,7 +283,7 @@ git branch -D lab17-single
 #### 수행 순서
 
 1. 비교·reviewer 처리 결과에서 실제 승인 지점을 세 곳 이상 추출합니다.
-2. `docs/checklists/pr-preflight.md`를 채택한 새 diff에 다시 적용합니다.
+2. `docs/checklists/pr-preflight.md`를 E3에서 사람이 수용한 항목까지 교정한 역할 분리 diff에 다시 적용합니다.
 3. 실패·기대 실패·미실행을 구분해 같은 실행 기록에 남깁니다.
 4. 전체 검증 뒤 사람이 승인 범위를 확인하고 역할 worktree 터미널에서 한 번만 커밋합니다. 원래 checkout에서는 그 commit을 fast-forward로 채택한 뒤 역할 worktree를 정리합니다.
 
@@ -296,6 +301,7 @@ git branch -D lab17-single
 
 - [ ] 승인 지점이 실제 메시지·plan·reviewer 결정에서 추출됐는가?
 - [ ] preflight 보류와 기대 실패를 사람이 review-ready 판단에 반영했는가?
+- [ ] 역할 분리 결과를 그대로 커밋하지 않고, reviewer 발견 중 사람이 수용한 교정만 반영했는가?
 - [ ] `git status --short`에 승인 범위 밖 파일이 없고 `deriveDisplayStatus()`가 수정되지 않았는가?
 
 연결된 worktree의 Git 디렉터리는 원래 저장소 아래에 있어 Codex 세션의 `workspace-write` sandbox가 `git commit`을 막을 수 있습니다. 직접 확인된 보장은 아니므로, 커밋은 사람이 역할 worktree의 터미널에서 수행합니다. 먼저 승인 범위 밖 파일이 없는지와 `deriveDisplayStatus()`가 수정되지 않았는지 확인합니다. `<승인된 파일 목록>`은 README가 미리 정하지 않고 plan에서 사람이 승인한 경로만 사용하며, `git add -A`로 범위를 넓히지 않습니다.
@@ -344,7 +350,7 @@ git diff HEAD^ HEAD -- src/admin.ts
 - 실패 정보를 추가하면서 `deriveDisplayStatus()`까지 고치거나 민감정보를 응답에 넣습니다.
 - reviewer가 발견 사항을 보고하기 전에 수정하고 사람의 처리 결정을 건너뜁니다.
 - 두 실행을 같은 작업 트리에서 섞거나 결과를 본 뒤 비교 기준을 고릅니다.
-- 단일 세션 결과를 기록하기 전에 버리거나 두 결과를 동시에 채택합니다.
+- 역할 분리 결과를 자동 승인하거나, 단일 세션의 차이를 기록하기 전에 버립니다.
 - 발견 없음과 입력 부족을 같은 빈 결과로 남깁니다.
 - preflight의 기대 실패·미실행을 일반 통과로 씁니다.
 
