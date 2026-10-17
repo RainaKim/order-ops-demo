@@ -49,7 +49,7 @@ Lab 17에서 채택한 결과가 현재 checkout에 반영돼 있어야 합니�
 
 GitHub CLI로 대상 저장소의 `nameWithOwner`, Issues 활성화 여부와 URL을 조회하고 사람이 확인합니다. 저장소가 다르거나 Issues가 꺼져 있으면 E1 전에 멈춥니다. 실제 명령과 화면 조작은 강사의 데모를 따릅니다.
 
-`gh repo view`와 E3의 `gh issue view`는 GitHub를 읽는 네트워크 명령입니다. Codex CLI가 승인을 요청하면 대상 저장소와 Issue가 보이는 **해당 읽기 명령 한 번만** 승인합니다. `gh issue create`와 `gh issue comment`는 외부 쓰기이므로 Codex에 허용하지 않고 사람이 터미널에서 실행합니다.
+`gh repo view`와 E3의 `gh issue view`는 GitHub를 읽는 네트워크 명령입니다. Codex CLI가 승인을 요청하면 대상 저장소와 Issue가 보이는 **해당 읽기 명령 한 번만** 승인합니다. 외부 쓰기 중 `gh issue create`는 사람이 터미널에서 실행하고, `gh issue comment`는 공개 문안과 대상 Issue를 사람이 명시적으로 승인한 뒤 Codex가 실행합니다.
 
 ### 권한을 작업 흐름의 일부로 보기
 
