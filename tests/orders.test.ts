@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { app } from '../src/server.js';
-import { orders, paymentAttempts, products, resetStore } from '../src/store.js';
+import { orders, paymentAttempts, products, resetStore, type PaymentAttempt } from '../src/store.js';
 
 describe('order operations', () => {
   beforeEach(() => {
@@ -170,9 +170,13 @@ describe('order operations', () => {
       orderId,
       ok: false,
       amountKrw: 46_000,
+      reason: 'payment_declined',
     });
     expect(paymentAttempts[0]?.at).toEqual(expect.any(String));
     expect(Date.parse(paymentAttempts[0]?.at ?? '')).not.toBeNaN();
+    expect(paymentAttempts[0]).not.toHaveProperty('cardToken');
+    expect(paymentAttempts[0]).not.toHaveProperty('error');
+    expect(JSON.stringify(paymentAttempts[0])).not.toContain('FAIL-CARD');
     expect(products.get('mouse')?.stock).toBe(10);
   });
 
@@ -327,6 +331,36 @@ describe('order operations', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(2);
+    expect(response.body).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: pending.body.id, status: 'pending' }),
+      expect.objectContaining({ id: failed.body.id, status: 'payment_failed' }),
+    ]));
+  });
+
+  it('lists failure details only for failed orders for administrators', async () => {
+    const pending = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+    const paid = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'monitor', quantity: 1 }] });
+    const failed = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'mouse', quantity: 2 }] });
+    await request(app)
+      .post(`/orders/${paid.body.id as string}/pay`)
+      .send({ cardToken: 'CARD-123' });
+    await request(app)
+      .post(`/orders/${failed.body.id as string}/pay`)
+      .send({ cardToken: 'FAIL-CARD' });
+    const failedAttempt = paymentAttempts.find(
+      (attempt) => attempt.orderId === failed.body.id && !attempt.ok,
+    );
+
+    const response = await request(app).get('/admin/orders');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(3);
     expect(response.body).toEqual(
       expect.arrayContaining([
         {
@@ -336,12 +370,187 @@ describe('order operations', () => {
           createdAt: pending.body.createdAt,
         },
         {
+          id: paid.body.id,
+          totalKrw: 310_000,
+          status: 'paid',
+          createdAt: paid.body.createdAt,
+        },
+        {
           id: failed.body.id,
           totalKrw: 46_000,
-          status: 'payment_failed',
+          status: '결제실패',
           createdAt: failed.body.createdAt,
+          paymentFailure: {
+            amountKrw: 46_000,
+            at: failedAttempt?.at,
+            reason: 'payment_declined',
+          },
         },
       ]),
     );
+    expect(response.body.find((order: { id: string }) => order.id === pending.body.id)).not.toHaveProperty(
+      'paymentFailure',
+    );
+    expect(response.body.find((order: { id: string }) => order.id === paid.body.id)).not.toHaveProperty(
+      'paymentFailure',
+    );
+    expect(JSON.stringify(response.body)).not.toContain('FAIL-CARD');
+    expect(JSON.stringify(response.body)).not.toContain('stack');
+    expect(JSON.stringify(response.body)).not.toContain('error');
+  });
+
+  it('uses the most recent failure attempt for the matching failed order only', async () => {
+    const first = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+    const second = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'mouse', quantity: 1 }] });
+    const firstOrder = orders.get(first.body.id as string);
+    const secondOrder = orders.get(second.body.id as string);
+    if (!firstOrder || !secondOrder) {
+      throw new Error('Expected created orders');
+    }
+    firstOrder.status = 'payment_failed';
+    secondOrder.status = 'payment_failed';
+    paymentAttempts.push(
+      {
+        orderId: firstOrder.id,
+        ok: false,
+        amountKrw: 49_000,
+        at: '2026-01-01T00:00:00.000Z',
+        reason: 'payment_declined',
+      },
+      {
+        orderId: secondOrder.id,
+        ok: false,
+        amountKrw: 23_000,
+        at: '2026-01-02T00:00:00.000Z',
+        reason: 'payment_declined',
+      },
+      {
+        orderId: firstOrder.id,
+        ok: false,
+        amountKrw: 48_000,
+        at: '2026-01-03T00:00:00.000Z',
+        reason: 'payment_declined',
+      },
+    );
+
+    const response = await request(app).get('/admin/orders');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: firstOrder.id,
+          paymentFailure: {
+            amountKrw: 48_000,
+            at: '2026-01-03T00:00:00.000Z',
+            reason: 'payment_declined',
+          },
+        }),
+        expect.objectContaining({
+          id: secondOrder.id,
+          paymentFailure: {
+            amountKrw: 23_000,
+            at: '2026-01-02T00:00:00.000Z',
+            reason: 'payment_declined',
+          },
+        }),
+      ]),
+    );
+  });
+
+  it('returns the approved internal error response when a failed order has no failure attempt', async () => {
+    const created = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+    const order = orders.get(created.body.id as string);
+    if (!order) {
+      throw new Error('Expected created order');
+    }
+    order.status = 'payment_failed';
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      const response = await request(app).get('/admin/orders');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        ok: false,
+        error: 'internal_error',
+        requestId: expect.any(String),
+      });
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it.each([
+    ['missing amount', { amountKrw: undefined }],
+    ['non-numeric amount', { amountKrw: '49000' }],
+    ['non-finite amount', { amountKrw: NaN }],
+    ['negative amount', { amountKrw: -1 }],
+    ['missing time', { at: undefined }],
+    ['invalid time', { at: 'invalid-time' }],
+    ['missing reason', { reason: undefined }],
+    ['unapproved reason', { reason: 'other' }],
+  ])('returns an internal error for a failure attempt with %s', async (_label, invalid) => {
+    const created = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+    const order = orders.get(created.body.id as string);
+    if (!order) {
+      throw new Error('Expected created order');
+    }
+    order.status = 'payment_failed';
+    paymentAttempts.push({
+      orderId: order.id,
+      ok: false,
+      amountKrw: 49_000,
+      at: '2026-01-01T00:00:00.000Z',
+      reason: 'payment_declined',
+      ...invalid,
+    } as unknown as PaymentAttempt);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      const response = await request(app).get('/admin/orders');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        ok: false,
+        error: 'internal_error',
+        requestId: expect.any(String),
+      });
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('does not create an administrator row from an orphan failure attempt', async () => {
+    const created = await request(app)
+      .post('/orders')
+      .send({ items: [{ productId: 'keyboard', quantity: 1 }] });
+    paymentAttempts.push({
+      orderId: 'missing-order',
+      ok: false,
+      amountKrw: 49_000,
+      at: '2026-01-01T00:00:00.000Z',
+      reason: 'payment_declined',
+    });
+
+    const response = await request(app).get('/admin/orders');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      {
+        id: created.body.id,
+        totalKrw: 49_000,
+        status: 'pending',
+        createdAt: created.body.createdAt,
+      },
+    ]);
   });
 });

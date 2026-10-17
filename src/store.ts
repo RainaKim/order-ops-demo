@@ -25,6 +25,7 @@ export interface PaymentAttempt {
   ok: boolean;
   amountKrw: number;
   at: string;
+  reason?: 'payment_declined';
 }
 
 const seedProducts: Product[] = [

@@ -45,6 +45,7 @@ function createAttempt(order: Order, ok: boolean): PaymentAttempt {
     ok,
     amountKrw: order.totalKrw,
     at: new Date().toISOString(),
+    ...(!ok ? { reason: 'payment_declined' as const } : {}),
   };
 }
 
