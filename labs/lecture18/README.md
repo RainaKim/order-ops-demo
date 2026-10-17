@@ -46,11 +46,7 @@ Lab 17에서 채택한 결과가 현재 checkout에 반영돼 있어야 합니�
 
 원본 template 저장소나 `origin`이 가리키는 배포용 저장소에 Issue를 만들지 않습니다. Issues가 활성화된 별도의 실습 저장소를 준비하고, `origin`은 임의로 바꾸지 않은 채 모든 `gh` 쓰기 명령에 `--repo OWNER/REPO`를 붙입니다.
 
-```bash
-gh repo view OWNER/REPO --json nameWithOwner,hasIssuesEnabled,url
-```
-
-출력의 `nameWithOwner`와 `hasIssuesEnabled`를 사람이 확인합니다. 저장소가 다르거나 Issues가 꺼져 있으면 E1 전에 멈춥니다.
+GitHub CLI로 대상 저장소의 `nameWithOwner`, Issues 활성화 여부와 URL을 조회하고 사람이 확인합니다. 저장소가 다르거나 Issues가 꺼져 있으면 E1 전에 멈춥니다. 실제 명령과 화면 조작은 강사의 데모를 따릅니다.
 
 `gh repo view`와 E3의 `gh issue view`는 GitHub를 읽는 네트워크 명령입니다. Codex CLI가 승인을 요청하면 대상 저장소와 Issue가 보이는 **해당 읽기 명령 한 번만** 승인합니다. `gh issue create`와 `gh issue comment`는 외부 쓰기이므로 Codex에 허용하지 않고 사람이 터미널에서 실행합니다.
 
@@ -184,11 +180,7 @@ VOC와 현재 코드가 어긋난다고 곧바로 원인을 확정하지 않습�
 
 #### 실행 2 — 사람이 게시
 
-```bash
-gh issue create --repo OWNER/REPO --title "<Issue 제목>" --body-file notes/issue-draft-l18.md
-```
-
-게시 명령이 출력한 Issue URL과 등록 사실, 사람이 초안에서 수정한 지점을 `notes/issue-run-l18.md`의 E2 절에 이어서 기록합니다.
+사람이 GitHub CLI에서 대상 저장소를 명시하고 `notes/issue-draft-l18.md`를 본문 파일로 사용해 Issue를 게시합니다. 게시 결과의 Issue URL과 등록 사실, 사람이 초안에서 수정한 지점을 `notes/issue-run-l18.md`의 E2 절에 이어서 기록합니다. 실제 게시 명령은 강사의 데모를 따릅니다.
 
 #### 사람 확인
 
@@ -230,11 +222,7 @@ URL은 사람이 검토한 요청의 정체성과 이후 코멘트 이력을 유
 
 Issue URL은 같은 요청을 다시 찾게 하는 **정체성**을 제공하지만, 본문과 코멘트는 수정될 수 있습니다. 따라서 재현 가능한 탐색 기록은 URL만이 아니라 읽은 시점의 `number`·`url`·`updatedAt`을 남깁니다. 이 메타데이터는 Issue 본문을 다른 문서에 복제하려는 것이 아니라, **어떤 버전의 요청을 읽었는지** 확인하기 위한 provenance marker입니다.
 
-GitHub CLI는 Issue URL을 받고 선택한 JSON 필드를 출력할 수 있습니다. 새 세션이 아래 읽기 명령을 제안하면 대상과 필드를 확인한 뒤 한 번만 승인합니다.
-
-```bash
-gh issue view <Issue URL> --repo OWNER/REPO --json number,title,body,comments,url,updatedAt
-```
+GitHub CLI는 Issue URL을 받고 선택한 JSON 필드를 출력할 수 있습니다. 새 Codex CLI 세션이 Issue의 번호·제목·본문·코멘트·URL·`updatedAt`을 읽는 명령을 제안하면, 사람은 대상과 필드가 맞는지 확인한 뒤 해당 읽기만 한 번 승인합니다. 사람이 이 조회 명령을 따로 입력하지 않습니다.
 
 #### 수행 순서
 
@@ -265,9 +253,7 @@ gh issue view <Issue URL> --repo OWNER/REPO --json number,title,body,comments,ur
 
 #### 실행 3 — 사람이 코멘트 게시
 
-```bash
-gh issue comment <Issue URL> --repo OWNER/REPO --body-file notes/issue-findings-l18.md
-```
+사람이 대상 저장소와 Issue를 다시 확인한 뒤, GitHub CLI에서 `notes/issue-findings-l18.md`를 본문 파일로 사용해 탐색 코멘트를 게시합니다. 실제 게시 명령은 강사의 데모를 따릅니다.
 
 #### 사람 확인
 
@@ -356,17 +342,11 @@ kickoff prompt가 Issue 내용을 다시 적거나 구현 단계를 포함하면
 
 사람은 검증 뒤 문서 산출물만 명시적으로 stage하고 커밋합니다.
 
-```bash
-git add docs/prompts/issue-kickoff.md notes/issue-draft-l18.md notes/issue-findings-l18.md notes/issue-run-l18.md <plan 경로>
-git commit -m "docs: add issue kickoff workflow"
-```
+stage 대상은 kickoff prompt, Issue 초안, 탐색 기록, 실행 기록과 이번 plan으로 제한합니다. staged diff에 앱 코드·테스트가 없는지 사람이 확인한 뒤 Lab 18 문서 산출물 커밋으로 마무리합니다. 실제 Git 명령은 강사의 데모를 따릅니다.
 
 ## 4. Self-check
 
-```bash
-node labs/tools/check.mjs 18
-git diff <Lab 18 시작 커밋> HEAD -- src tests
-```
+Lab 18 검사기를 실행하고, Lab 시작 커밋과 현재 상태 사이의 `src/`·`tests/` diff가 비어 있는지 확인합니다. 실제 검증 명령은 강사의 데모를 따릅니다.
 
 - [ ] 검사기가 kickoff의 다섯 H2와 실행 기록의 E1~E4 절을 확인하는가?
 - [ ] test·lint·typecheck가 통과하고 기존 `it.fails()`가 유지되는가?
