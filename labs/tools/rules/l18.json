@@ -1,9 +1,29 @@
 {
   "lecture": "18",
   "required": [
-    { "path": "docs/prompts/issue-kickoff.md" }
+    {
+      "path": "docs/prompts/issue-kickoff.md",
+      "fixedHeadings": ["## 입력", "## 금지", "## 출력", "## 검증", "## Handoff"]
+    },
+    {
+      "path": "notes/issue-run-l18.md",
+      "fixedHeadings": ["## E1 Issue 합격 판정", "## E2 Issue 등록 기록", "## E3 탐색·코멘트 게시 기록", "## E4 Handoff 기록"],
+      "sectionMinItems": [
+        { "heading": "## E1 Issue 합격 판정", "minItems": 1 },
+        { "heading": "## E2 Issue 등록 기록", "minItems": 1 },
+        { "heading": "## E3 탐색·코멘트 게시 기록", "minItems": 1 },
+        { "heading": "## E4 Handoff 기록", "minItems": 1 }
+      ]
+    }
   ],
-  "optional": [],
+  "optional": [
+    { "path": "notes/issue-draft-l18.md" },
+    { "path": "notes/issue-findings-l18.md" }
+  ],
   "runAppChecks": true,
-  "externalChecks": ["GitHub Issue 등록 여부는 사람이 확인합니다."]
+  "cleanWorktreePaths": ["src", "tests"],
+  "externalChecks": [
+    "Issue와 탐색 코멘트가 실습용 독립 저장소에 게시됐는지는 사람이 확인합니다.",
+    "Issue URL과 사람이 게시 전에 수정한 내용의 사실성은 사람이 확인합니다."
+  ]
 }
