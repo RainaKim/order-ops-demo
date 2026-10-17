@@ -14,8 +14,9 @@ Lab 08에서 만든 Issue template을 실제 GitHub Issue에 적용하고, 로�
 | 책임 | 담당 | 쓰기 범위 |
 | --- | --- | --- |
 | 초안 작성·저장소 탐색 | Codex | `notes/`의 초안·실행 기록만 |
-| Issue·코멘트 공개 전 확인 | 사람 | 고객 정보 제거, 미정 표시, 게시 대상 확인 |
-| GitHub 게시 | 사람의 터미널 | 명시한 독립 저장소의 Issue·코멘트 |
+| Issue·코멘트 공개 전 확인 | 사람 | 고객 정보 제거, 미정 표시, 게시 대상과 공개 문안 승인 |
+| Issue 등록 | 사람의 터미널 | 명시한 독립 저장소의 승인된 Issue 본문 |
+| 코멘트 게시 | 승인받은 Codex | 사람이 승인한 공개 문안과 대상 Issue |
 | 앱 구현·PR 생성 | 이번 Lab에서 없음 | Lab 20에서 사람 승인 뒤 판단 |
 
 ### 문맥의 종류와 권한을 분리하기
@@ -58,7 +59,8 @@ OpenAI의 Codex 운영 자료는 파일·명령·네트워크·연결 도구의 
 | --- | --- | --- |
 | `gh repo view`, `gh issue view` | 외부 상태를 읽지만 변경하지 않음 | 대상을 보고 해당 읽기 명령만 승인 |
 | `notes/`에 초안 저장 | 로컬 작업 트리를 변경 | 승인된 산출물 경로만 허용하고 diff 확인 |
-| `gh issue create`, `gh issue comment` | 외부 GitHub 상태를 변경 | 본문·대상을 확인한 사람이 직접 실행 |
+| `gh issue create` | 외부 GitHub 상태를 변경 | 본문과 대상 저장소를 확인한 사람이 직접 실행 |
+| `gh issue comment` | 외부 GitHub 상태를 변경 | 사람이 공개 문안·대상·효과를 명시적으로 승인한 뒤 Codex가 실행 |
 | `src/`, `tests/` 수정 | 제품 동작과 검증 범위를 변경 | 이 Lab에서 금지 |
 
 승인은 제안된 **명령·대상·효과**를 보고 내립니다. 읽기 승인이 GitHub 쓰기까지 허가하지 않고, 한 Issue 조회 승인이 다른 저장소 조회를 자동으로 허가하지도 않습니다.
@@ -69,7 +71,7 @@ OpenAI의 Codex 운영 자료는 파일·명령·네트워크·연결 도구의 
 | --- | --- | --- |
 | E1 | VOC를 Lab 08 template으로 합격 판정 | `notes/issue-run-l18.md`의 판정 기록 |
 | E2 | Issue 초안 작성·사람 확인·직접 등록 | `notes/issue-draft-l18.md`, Issue URL·게시 기록 |
-| E3 | URL 기반 탐색·입력 방식 비교·사람 게시 | `notes/issue-findings-l18.md`, 코멘트 게시 기록 |
+| E3 | URL 기반 탐색·입력 방식 비교·사람 승인 후 게시 | `notes/issue-findings-l18.md`, 코멘트 게시 기록 |
 | E4 | Issue kickoff 계약을 적용해 planner 승인 대기까지 연결 | `docs/prompts/issue-kickoff.md`, plan, 완료 커밋 |
 
 `notes/issue-run-l18.md`는 `## E1 Issue 합격 판정`, `## E2 Issue 등록 기록`, `## E3 탐색·코멘트 게시 기록`, `## E4 Handoff 기록`을 순서대로 두고 각 단계의 관찰과 사람 판단을 이어서 남깁니다.
@@ -83,9 +85,10 @@ flowchart LR
   D -- 승인 --> E[사람이 Issue 게시]
   E --> F[새 CLI: gh issue view]
   F --> G[근거와 가설을 나눈 탐색 초안]
-  G --> H{사람이 코멘트 게시 승인}
-  H -- 승인 --> I[issue-kickoff → planner → plan]
-  I --> J[사람 승인 대기·구현 중단]
+  G --> H{사람이 공개 문안·대상 승인}
+  H -- 승인 --> I[Codex가 승인된 코멘트 게시]
+  I --> J[issue-kickoff → planner → plan]
+  J --> K[사람 승인 대기·구현 중단]
 ```
 
 Issue는 단순 링크가 아니라 요청 변경의 정본입니다. 이후 탐색과 plan은 VOC 원문이나 이전 대화가 아니라 사람이 검토한 Issue의 제목·본문·후속 코멘트를 다시 읽어야 합니다.
@@ -229,7 +232,7 @@ GitHub CLI는 Issue URL을 받고 선택한 JSON 필드를 출력할 수 있습�
 1. `codex -C <실습 checkout 경로>`로 새 CLI 세션을 엽니다.
 2. Issue URL만 전달하고 `gh issue view`로 Issue 본문·코멘트·`updatedAt`을 읽는 명령만 승인합니다.
 3. 별도 새 세션에는 `labs/fixtures/l18-voc-report.md`만 요청 원문으로 주어 짧게 비교합니다.
-4. URL 기반 결과를 `notes/issue-findings-l18.md`로 남기고 사람이 확인한 뒤 코멘트로 게시합니다.
+4. URL 기반 결과를 `notes/issue-findings-l18.md`로 남기고, 별도의 공개용 코멘트를 사람이 승인한 뒤 Codex가 게시합니다.
 
 #### 실행 1 — Issue URL 기반 탐색
 
@@ -249,17 +252,18 @@ GitHub CLI는 Issue URL을 받고 선택한 JSON 필드를 출력할 수 있습�
 완료 조건: URL 기반 결과와 비교할 수 있게 요청 원문·확인 사실·가설·미정을 구분해 보고한다.
 ```
 
-두 결과의 요청 원문, 사람이 고친 내용과 Issue 코멘트의 반영 여부, 근거 재확인 가능 여부를 `notes/issue-run-l18.md`의 E3 절에 기록합니다. 코멘트 초안은 URL 기반 탐색 결과만 사용합니다.
+두 결과의 요청 원문, 사람이 고친 내용과 Issue 코멘트의 반영 여부, 근거 재확인 가능 여부를 `notes/issue-run-l18.md`의 E3 절에 기록합니다. `notes/issue-findings-l18.md`는 상세 탐색 기록으로 유지하고, 공개용 코멘트는 URL 기반 결과에서 별도로 작성합니다.
 
-#### 실행 3 — 사람이 코멘트 게시
+#### 실행 3 — 사람 승인 뒤 코멘트 게시
 
-사람이 대상 저장소와 Issue를 다시 확인한 뒤, GitHub CLI에서 `notes/issue-findings-l18.md`를 본문 파일로 사용해 탐색 코멘트를 게시합니다. 실제 게시 명령은 강사의 데모를 따릅니다.
+Codex가 URL 기반 탐색 결과에서 공개용 코멘트만 응답으로 제안합니다. 사람은 대상 저장소·Issue와 공개 문안을 확인해 명시적으로 승인하고, Codex는 승인된 문안 그대로 코멘트를 게시한 뒤 URL을 실행 기록에 남깁니다. 상세 탐색 기록 파일 전체를 코멘트 본문으로 사용하지 않으며, 실제 승인과 게시 과정은 강사의 데모를 따릅니다.
 
 #### 사람 확인
 
 - [ ] Codex가 실제로 실행하려는 명령이 대상 Issue의 읽기 전용 `gh issue view`인가?
 - [ ] 코멘트 초안의 사실·가설·미정이 서로 섞이지 않았는가?
 - [ ] 원인이나 변경 방향을 승인된 결론처럼 쓰지 않았는가?
+- [ ] 사람이 공개 문안과 게시 대상을 승인한 뒤에만 Codex가 외부 쓰기를 수행하는가?
 
 #### 검증
 
@@ -362,7 +366,7 @@ Lab 18 검사기를 실행하고, Lab 시작 커밋과 현재 상태 사이의 `
 
 ## 6. 다음 lab으로 넘기는 것
 
-Lab 19에는 Issue가 생긴 뒤 반복할 수 있는 **읽기 전용 후보**를 넘깁니다. 새 Issue의 정책·코드·테스트 후보 찾기, 탐색 근거 형식 확인, 미정·stop condition 감지는 Automation 후보가 될 수 있지만 GitHub 게시와 정책 승인은 사람이 유지합니다.
+Lab 19에는 Issue가 생긴 뒤 반복할 수 있는 **읽기 전용 후보**를 넘깁니다. 새 Issue의 정책·코드·테스트 후보 찾기, 탐색 근거 형식 확인, 미정·stop condition 감지는 Automation 후보가 될 수 있지만 GitHub 게시 여부와 정책 승인은 사람이 유지합니다.
 
 Lab 20에는 같은 독립 저장소의 Issue URL, `notes/issue-findings-l18.md`, `notes/issue-run-l18.md`, `docs/prompts/issue-kickoff.md`, 승인 대기 중인 plan과 PR draft handoff 위치를 넘깁니다. Lab 20에서야 사람이 plan을 승인하고 구현·검증·PR 후보를 연결합니다.
 
