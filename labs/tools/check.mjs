@@ -83,6 +83,34 @@ function fileFromBranch(relativePath, branch) {
   return result.status === 0 ? result.stdout : null;
 }
 
+function listWorktreeFiles(directory = repoRoot, prefix = '') {
+  const files = [];
+
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (entry.name === '.git' || entry.name === 'node_modules') {
+      continue;
+    }
+
+    const relativePath = path.posix.join(prefix, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listWorktreeFiles(path.join(directory, entry.name), relativePath));
+    } else if (entry.isFile()) {
+      files.push(relativePath);
+    }
+  }
+
+  return files;
+}
+
+function listTargetFiles(branch) {
+  if (!branch) {
+    return listWorktreeFiles();
+  }
+
+  const result = run('git', ['ls-tree', '-r', '--name-only', branch]);
+  return result.status === 0 ? result.stdout.split(/\r?\n/).filter(Boolean) : [];
+}
+
 function readTargetFile(relativePath, branch) {
   return branch ? fileFromBranch(relativePath, branch) : fileFromWorktree(relativePath);
 }
@@ -188,6 +216,20 @@ function validateArtifact(entry, branch, level) {
     }
   }
 
+  if (entry.frontmatterFields) {
+    const frontmatter = content.match(/^---\s*\r?\n([\s\S]*?)\r?\n---(?:\s*\r?\n|$)/)?.[1] ?? '';
+    for (const field of entry.frontmatterFields) {
+      const escapedField = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (!new RegExp(`^${escapedField}:\\s*\\S.+$`, 'm').test(frontmatter)) {
+        if (level === 'required') {
+          fail(`${entry.path} frontmatter에 '${field}' 값이 없습니다.`);
+        } else {
+          warn(`${entry.path} frontmatter에 '${field}' 값이 없습니다.`);
+        }
+      }
+    }
+  }
+
   for (const section of entry.sectionMinItems ?? []) {
     const body = sectionBody(content, section.heading);
     if (countItems(body) < section.minItems) {
@@ -195,6 +237,19 @@ function validateArtifact(entry, branch, level) {
         fail(`${entry.path}의 ${section.heading} 항목 수가 ${section.minItems}개보다 적습니다.`);
       } else {
         warn(`${entry.path}의 ${section.heading} 항목 수가 ${section.minItems}개보다 적습니다.`);
+      }
+    }
+  }
+
+  for (const section of entry.sectionContains ?? []) {
+    const body = sectionBody(content, section.heading);
+    for (const expected of section.contains ?? []) {
+      if (!body.includes(expected)) {
+        if (level === 'required') {
+          fail(`${entry.path}의 ${section.heading}에 '${expected}' 내용이 없습니다.`);
+        } else {
+          warn(`${entry.path}의 ${section.heading}에 '${expected}' 내용이 없습니다.`);
+        }
       }
     }
   }
@@ -212,6 +267,27 @@ function validateArtifact(entry, branch, level) {
       fail(`${entry.path}에 TODO만 남은 항목이 있습니다.`);
     } else {
       warn(`${entry.path}에 TODO가 남아 있습니다.`);
+    }
+  }
+}
+
+function validateRequiredMatches(entries, branch) {
+  const targetFiles = listTargetFiles(branch);
+
+  for (const entry of entries ?? []) {
+    const pattern = new RegExp(entry.pathPattern);
+    const excluded = new Set(entry.excludePaths ?? []);
+    const matches = targetFiles.filter((file) => pattern.test(file) && !excluded.has(file));
+    const minMatches = entry.minMatches ?? 1;
+
+    if (matches.length < minMatches) {
+      fail(`필수 경로 패턴 /${entry.pathPattern}/에 맞는 파일이 ${minMatches}개보다 적습니다.`);
+      continue;
+    }
+
+    pass(`필수 경로 패턴 /${entry.pathPattern}/에 맞는 파일이 ${matches.length}개 있습니다.`);
+    for (const matchedPath of matches) {
+      validateArtifact({ ...entry, path: matchedPath }, branch, 'required');
     }
   }
 }
@@ -363,7 +439,8 @@ function lintLabs() {
     }
 
     const lines = markdown.split(/\r?\n/);
-    if (lines.length > 250) {
+    const rule = parseRule(lecture);
+    if (!rule.allowLongReadme && lines.length > 250) {
       fail(`${relativePath}가 ${lines.length}줄입니다. 250줄 이하여야 합니다.`);
     }
 
@@ -571,6 +648,7 @@ function checkLecture(rawLecture, branch) {
     for (const entry of rule.optional) {
       validateArtifact(entry, branch, 'optional');
     }
+    validateRequiredMatches(rule.requiredMatches, branch);
   }
 
   const targetRule = parseRule(lecture);

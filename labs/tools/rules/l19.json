@@ -1,9 +1,52 @@
 {
   "lecture": "19",
+  "allowLongReadme": true,
   "required": [
-    { "path": "docs/automation/candidates.md", "contains": ["Input", "Output", "Run Condition", "Stop Condition", "Human Approval", "Failure Alert"] },
-    { "path": "docs/automation/stop-conditions.md", "minItems": 5 }
+    {
+      "path": "docs/automation/candidates.md",
+      "fixedHeadings": [
+        "## 새 Issue의 관련 파일 후보 정리",
+        "## 테스트 실패 로그 요약",
+        "## PR preflight 실행",
+        "## 문서와 코드 불일치 후보 찾기"
+      ],
+      "sectionContains": [
+        { "heading": "## 새 Issue의 관련 파일 후보 정리", "contains": ["Input", "Output", "Run Condition", "Stop Condition", "Human Approval Needed", "Failure Alert"] },
+        { "heading": "## 테스트 실패 로그 요약", "contains": ["Input", "Output", "Run Condition", "Stop Condition", "Human Approval Needed", "Failure Alert"] },
+        { "heading": "## PR preflight 실행", "contains": ["Input", "Output", "Run Condition", "Stop Condition", "Human Approval Needed", "Failure Alert"] },
+        { "heading": "## 문서와 코드 불일치 후보 찾기", "contains": ["Input", "Output", "Run Condition", "Stop Condition", "Human Approval Needed", "Failure Alert"] }
+      ]
+    },
+    {
+      "path": "docs/automation/stop-conditions.md",
+      "contains": ["같은 오류 3회", "변경 파일 수", "외부 권한", "불명확한 테스트 실패", "민감 화면"],
+      "minItems": 5
+    },
+    {
+      "path": "notes/automation-run-l19.md",
+      "fixedHeadings": ["## E1 후보 선별", "## E2 표면·권한 심사", "## E3 Skill 시험", "## E4 Scheduled 생성 기록"],
+      "sectionMinItems": [
+        { "heading": "## E1 후보 선별", "minItems": 1 },
+        { "heading": "## E2 표면·권한 심사", "minItems": 1 },
+        { "heading": "## E3 Skill 시험", "minItems": 1 },
+        { "heading": "## E4 Scheduled 생성 기록", "minItems": 1 }
+      ]
+    }
+  ],
+  "requiredMatches": [
+    {
+      "pathPattern": "^\\.agents/skills/[^/]+/SKILL\\.md$",
+      "excludePaths": [".agents/skills/course-lab-design/SKILL.md"],
+      "minMatches": 1,
+      "frontmatterFields": ["name", "description"]
+    }
   ],
   "optional": [],
-  "runAppChecks": true
+  "runAppChecks": true,
+  "cleanWorktreePaths": ["src", "tests"],
+  "externalChecks": [
+    "Scheduled task가 Desktop에서 생성됐고 대상 프로젝트·sandbox·실행 주기는 사람이 확인합니다.",
+    "새 Skill 폴더가 git status에 보이며 stage 범위가 docs/automation/, notes/automation-run-l19.md, 해당 Skill 폴더로 제한됐는지는 사람이 확인합니다.",
+    "커밋 전에 src/와 tests의 staged·unstaged 변경이 없는지는 사람이 확인합니다."
+  ]
 }
