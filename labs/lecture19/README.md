@@ -311,10 +311,10 @@ $<skill-name>
 새 Desktop Task는 저장소 파일을 읽을 수 있지만 이전 Task의 대화는 알지 못합니다. 후보 판정·권한 검토·Skill 생성 근거와 승인 범위를 파일 경로로 다시 연결합니다.
 
 ```text
-목표: .agents/skills/<승인한 Skill 이름>/SKILL.md를 Scheduled에 연결하기 전에 필요한 중단 조건과 사람이 재개할 증거를 검토·보완한다.
-문맥: docs/automation/candidates.md, notes/automation-run-l19.md의 후보 판정·권한 검토·Skill 생성·행동 비교 기록과 기존 docs/automation/stop-conditions.md를 읽는다.
-제약: 작업 준비 결과와 Skill 행동 판정을 구분하고, 비교 조건 차이와 Scheduled 권한 미확인을 숨기지 않는다. Scheduled task를 만들거나 앱·테스트를 수정하지 않는다.
-완료 조건: stop-conditions.md를 필요한 범위에서만 보완하고, automation-run-l19.md의 Scheduled 생성 전 검토에 현재 승인 게이트와 사람이 결정할 항목을 남긴다.
+목표: .agents/skills/<승인한 Skill 이름>/SKILL.md를 Scheduled에 연결하기 위한 중단 조건과 사람이 재개할 증거를 정의한다.
+문맥: docs/automation/candidates.md, notes/automation-run-l19.md의 행동 비교 기록과 승인한 SKILL.md를 읽는다.
+제약: 비교의 한계와 Scheduled 권한 미확인을 숨기지 않고, Scheduled task나 앱·테스트를 수정하지 않는다.
+완료 조건: docs/automation/stop-conditions.md를 작성하고, automation-run-l19.md의 E4에 생성 전 검토와 사람이 결정할 항목을 남긴다.
 ```
 
 #### 사람 승인
