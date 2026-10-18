@@ -328,12 +328,12 @@ $<skill-name>
 
 #### 실행 3 — Scheduled 생성
 
-Scheduled 생성은 대상 저장소를 Desktop 로컬 프로젝트로 선택한 새 Task에서 진행합니다. 프로젝트가 연결되지 않아 실패하면 같은 대화에서 다시 요청하지 않고, 올바른 프로젝트의 새 Task에서 시작합니다.
+Scheduled 생성 화면에서 대상 프로젝트를 선택합니다. 프로젝트가 목록에 없으면 먼저 Desktop 로컬 프로젝트로 추가합니다.
 
 ```text
-이 Task가 속한 <프로젝트 이름> 프로젝트에서 실행할 때마다 새 작업을 시작하는 독립형 Scheduled task를 만들어줘.
-방금 검토한 <승인한 Skill 이름> Skill과 docs/automation/stop-conditions.md의 중단 조건을 사용해라.
-주기는 <승인한 주기>, 가변 입력은 <매 실행에서 달라지는 대상>, 실행 환경은 <로컬 프로젝트 또는 worktree>, 권한은 <승인한 권한>으로 설정해라.
+<프로젝트 이름> 프로젝트에 .agents/skills/<skill-name>/SKILL.md와 docs/automation/stop-conditions.md를 연결한 독립형 Scheduled task를 만들어줘.
+저장 prompt는 $<skill-name> Skill을 호출하고 <매 실행에서 달라지는 대상>을 입력으로 사용하게 해라.
+주기는 <승인한 주기>, 실행 환경은 <로컬 프로젝트 또는 worktree>, 권한은 <승인한 권한>으로 설정해라.
 중단 조건이 발생하면 추가 진행 없이 근거와 사람이 결정할 항목을 보고해라.
 생성한 프로젝트·주기·실행 환경·권한·Skill·가변 입력을 notes/automation-run-l19.md에 기록하되 앱·테스트는 수정하지 마라.
 ```
