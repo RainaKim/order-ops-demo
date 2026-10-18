@@ -287,18 +287,37 @@ $<skill-name>
 
 #### 수행 순서
 
-1. Skill 시험에서 관찰한 실패와 권한 경계를 중단 조건 표로 만들고, 후보별 파일 수·경로 상한을 연결합니다.
-2. 사람이 표와 Skill을 승인한 뒤 Desktop의 Scheduled에서 가장 좁은 sandbox로 task를 생성합니다.
-3. 저장 prompt에는 Skill 호출과 가변 입력만 두고 실제 화면 조작은 데모를 따릅니다.
-4. 생성 사실과 검토할 첫 실행들, 로컬 실행 제약을 E4 기록에 남깁니다.
-5. 사람이 승인된 문서·실행 기록·새 Skill만 stage 범위로 확정하고 앱·테스트 무변경을 확인한 뒤 커밋합니다.
+1. 새 Desktop Task에서 후보 문서, 실행 기록 E2·E3과 승인한 Skill을 경로로 다시 읽습니다.
+2. Skill 시험에서 관찰한 실패와 권한 경계를 중단 조건 표로 만들고 E4에 생성 전 검토를 기록합니다.
+3. 사람이 중단 조건·재개 증거·프로젝트·sandbox를 승인합니다.
+4. 승인 뒤 Desktop의 Scheduled에서 task를 만들고 Skill과 가변 입력만 저장 prompt에 둡니다.
+5. 생성 설정과 검토할 첫 실행들, 로컬 실행 제약을 E4 기록에 남깁니다.
+6. 사람이 승인된 문서·실행 기록·새 Skill만 stage 범위로 확정하고 앱·테스트 무변경을 확인한 뒤 커밋합니다.
 
-#### 실행
+#### 실행 1 — 중단 조건 정의
+
+새 Desktop Task는 저장소 파일을 읽을 수 있지만 이전 Task의 대화는 알지 못합니다. E2·E3의 근거와 승인 범위를 파일 경로로 다시 연결합니다.
+
 ```text
-목표: Skill의 자동 실행 중단 조건과 사람이 재개할 증거를 정의한다.
-문맥: E2 권한 심사, E3 Skill 시험과 docs/automation/candidates.md를 사용한다.
-제약: 실행 결과·정책 답을 만들거나 앱·테스트를 수정하지 않는다.
-완료 조건: docs/automation/stop-conditions.md에 다섯 중단 유형과 Failure Alert 증거를, notes/automation-run-l19.md의 E4에 Scheduled 생성 기록을 남긴다.
+목표: E3에서 만든 Skill을 자동 실행하기 전에 필요한 중단 조건과 사람이 재개할 증거를 정의한다.
+문맥: docs/automation/candidates.md, notes/automation-run-l19.md의 E2·E3, .agents/skills/<승인한 Skill 이름>/SKILL.md를 읽는다.
+제약: Scheduled task를 아직 만들지 않고, 실행 결과·정책 답을 만들거나 앱·테스트를 수정하지 않는다.
+완료 조건: docs/automation/stop-conditions.md에 다섯 중단 유형과 Failure Alert 증거를 정리하고, notes/automation-run-l19.md의 E4에 Scheduled 생성 전 검토 결과를 남긴다.
+```
+
+#### 사람 승인
+
+- [ ] 실행 대상·가변 입력과 사용할 프로젝트가 명확한가?
+- [ ] 외부 권한·범위 초과·불명확한 실패에서 자동 실행이 멈추는가?
+- [ ] 사람이 재개할 상태·근거·미실행 검증이 보고서에 남는가?
+- [ ] 가장 좁은 sandbox에서 실행하도록 승인했는가?
+
+#### 실행 2 — Scheduled 생성
+
+```text
+방금 검토한 <승인한 Skill 이름> Skill과 docs/automation/stop-conditions.md의 중단 조건을 사용해 이 프로젝트에 Scheduled task를 만들어줘.
+각 실행은 <주기와 가변 입력>을 사용하고, 중단 조건이 발생하면 추가 진행 없이 근거와 사람이 결정할 항목을 보고해라.
+생성한 설정을 notes/automation-run-l19.md의 E4에 기록하되 앱·테스트는 수정하지 마라.
 ```
 
 공식 Scheduled task 문서는 Desktop 앱의 task prompt에서 `$skill-name`으로 Skill을 명시적으로 호출할 수 있다고 설명합니다. 저장 prompt는 다음처럼 작게 유지하고, 만든 repo Skill이 실제로 선택됐는지는 task 설정과 첫 실행 기록에서 확인합니다.
