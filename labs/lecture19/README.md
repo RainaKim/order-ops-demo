@@ -334,12 +334,6 @@ $<skill-name>
 생성한 설정을 notes/automation-run-l19.md의 Scheduled 생성 기록에 남기되 앱·테스트는 수정하지 마라.
 ```
 
-공식 Scheduled task 문서는 Desktop 앱의 task prompt에서 `$skill-name`으로 Skill을 명시적으로 호출할 수 있다고 설명합니다. 저장 prompt는 다음처럼 작게 유지하고, 만든 repo Skill이 실제로 선택됐는지는 task 설정과 첫 실행 기록에서 확인합니다.
-```text
-$<skill-name>
-입력: <매 실행에서 달라지는 대상>
-```
-
 로컬 프로젝트 task는 컴퓨터와 앱이 켜져 있어야 합니다. 처음 몇 실행은 사람이 보고서를 검토하고, 잦은 일정이 worktree를 쌓으면 run 보존·정리 방식을 다시 판단합니다. 강의 안에서는 task 생성까지만 확인하며 예약 시각의 실제 발화는 검증하지 않습니다.
 
 커밋 전 stage 대상은 `docs/automation/`, `notes/automation-run-l19.md`, 새 `.agents/skills/<이름>/`으로 제한합니다. 일부 checkout은 `.git/info/exclude` 등 로컬 exclude 설정 때문에 `.agents/`가 보이지 않을 수 있으므로 `git status`에서 새 Skill 폴더가 보이는지 먼저 확인합니다. 보이지 않으면 exclude 원인을 확인한 뒤 사람이 포함 여부를 결정하며, 실제 stage·commit 명령은 데모를 따릅니다. 마지막으로 `src/`·`tests/`에 staged·unstaged 변경이 없는지 사람이 확인합니다.
