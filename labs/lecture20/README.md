@@ -249,9 +249,9 @@ Issue는 요청의 정체성을, incident note는 이번 조사 snapshot을, pla
 #### 실행 2 — 재사용 자산과 backlog
 
 ```text
-목표: 이번 흐름의 재사용 연결점과 후속 작업을 분리해 정리한다.
-문맥: Lab 12~20에서 실제 사용한 기준·prompt·checklist·Skill·실행 기록을 사용한다.
-제약: 이번 사건의 답을 일반 규칙으로 만들거나 소비자 없는 새 문서를 추가하지 않는다.
+목표: 이번 workflow의 재사용 연결점과 후속 작업을 분리해 정리한다.
+문맥: 저장소 지침을 먼저 읽고, 현재 Issue에서 incident·승인 plan·diff·review·검증 기록으로 이어지는 근거를 따라 실제 사용한 기준·prompt·checklist·Skill을 직접 찾는다.
+제약: 파일 이름이나 존재만으로 사용됐다고 추정하거나, 이번 사건의 답을 일반 규칙으로 만들고 소비자 없는 문서를 추가하지 않는다. 연결 근거를 찾지 못한 항목은 미확인으로 남긴다.
 완료 조건: docs/agentic-workflow-starter-kit.md와 notes/backlog-l20.md를 완성한다.
 ```
 
